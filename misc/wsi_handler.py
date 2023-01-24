@@ -98,7 +98,37 @@ class FileHandler(object):
         hires_lv = self.metadata["available_mag"].index(hires_mag)
         return hires_lv, scale_factor
 
+import pickle
+class MemmapHandler(FileHandler):
+    def __init__(self, file_path):
+        super().__init__()
+        infoname = file_path.replace('.dat','_info.pkl').replace('img','hdr')
+        info = pickle.load(open(infoname,'rb'))
+        shp = info['shape']
+        self.image_ptr = np.memmap(file_path,dtype='uint8',mode='r',shape=shp)
+        self.metadata = self.__load_metadata()
 
+    def __load_metadata(self):
+        magnification_level = 40*(1/np.array([1, 2, 4, 8, 16, 32, 64, 128, 256, 512]))
+        
+        metadata = [
+            ("available_mag", magnification_level),  # highest to lowest mag
+            ("base_mag", magnification_level[0]),
+            ("vendor", "custom"),
+            ("mpp  ", np.array([0.5,0.5])),
+            ("base_shape", np.array(self.image_ptr.shape[:2])),
+        ]
+        return OrderedDict(metadata)
+    
+    def prepare_reading(self, read_mag=None, read_mpp=None, cache_path=None):
+        return
+    
+    def read_region(self,coords,size):
+        region = self.image_ptr[
+                coords[1] : coords[1] + size[1], coords[0] : coords[0] + size[0]
+            ]
+        return np.array(region)[..., :3]
+    
 class OpenSlideHandler(FileHandler):
     """Class for handling OpenSlide supported whole-slide images."""
 
@@ -199,6 +229,8 @@ def get_file_handler(path, backend):
             '.bif',
             ]:
         return OpenSlideHandler(path)
+    elif backend in '.dat':
+        return MemmapHandler(path)
     else:
         assert False, "Unknown WSI format `%s`" % backend
 

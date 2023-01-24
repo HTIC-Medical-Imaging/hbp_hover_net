@@ -17,7 +17,7 @@ import sys
 import time
 from functools import reduce
 from importlib import import_module
-
+from concurrent.futures import ThreadPoolExecutor
 import cv2
 import numpy as np
 import psutil
@@ -35,7 +35,7 @@ from misc.utils import (
     rm_n_mkdir,
 )
 from misc.wsi_handler import get_file_handler
-
+import time
 from . import base
 
 thread_lock = Lock()
@@ -260,17 +260,21 @@ def _assemble_and_flush(wsi_pred_map_mmap_path, chunk_info, patch_output_list):
 class InferManager(base.InferManager):
     def __run_model(self, patch_top_left_list, pbar_desc):
         # TODO: the cost of creating dataloader may not be cheap ?
+
+        start = time.time()
         dataset = SerializeArray(
             "%s/cache_chunk.npy" % self.cache_path,
             patch_top_left_list,
             self.patch_input_shape,
         )
 
+
         dataloader = data.DataLoader(
             dataset,
             num_workers=self.nr_inference_workers,
             batch_size=self.batch_size,
-            drop_last=False,
+            drop_last=True,
+            pin_memory = True
         )
 
         pbar = tqdm.tqdm(
@@ -281,12 +285,34 @@ class InferManager(base.InferManager):
             ascii=True,
             position=0,
         )
-
+        # print(f"time taken for dataloader {time.time() - start}")
         # run inference on input patches
         accumulated_patch_output = []
         for batch_idx, batch_data in enumerate(dataloader):
+
+            
             sample_data_list, sample_info_list = batch_data
-            sample_output_list = self.run_step(sample_data_list)
+
+            num_gpu = 8
+            
+            chunk = len(sample_data_list)//num_gpu
+            
+            brain_batches = [sample_data_list[i:i+chunk] for i in range(0,len(sample_data_list),chunk)]
+            # print(chunk)
+            # print(brain_batches[0].shape)
+            # print(len(sample_data_list))
+
+            start = time.time()
+            with ThreadPoolExecutor(8) as executor:
+                sample_output_list = {}
+                for val,dev in executor.map(self.run_step,brain_batches,list(range(num_gpu))):
+                    sample_output_list[dev] = val
+
+            
+            print(time.time() - start)
+            # sample_output_list = self.run_step(sample_data_list,device)
+            sample_output_list = np.concatenate([sample_output_list[i] for i in range(num_gpu)],axis=0)
+            
             sample_info_list = sample_info_list.numpy()
             curr_batch_size = sample_output_list.shape[0]
             sample_output_list = np.split(sample_output_list, curr_batch_size, axis=0)
@@ -479,14 +505,15 @@ class InferManager(base.InferManager):
             self.wsi_mask = cv2.cvtColor(self.wsi_mask, cv2.COLOR_BGR2GRAY)
             self.wsi_mask[self.wsi_mask > 0] = 1
         else:
-            log_info(
-                "WARNING: No mask found, generating mask via thresholding at 1.25x!"
-            )
+            
 
             from skimage import morphology
 
             # simple method to extract tissue regions using intensity thresholding and morphological operations
             def simple_get_mask():
+                log_info(
+                    "WARNING: No mask found, generating mask via thresholding at 1.25x!"
+                )
                 scaled_wsi_mag = 1.25  # ! hard coded
                 wsi_thumb_rgb = self.wsi_handler.get_full_img(read_mag=scaled_wsi_mag)
                 gray = cv2.cvtColor(wsi_thumb_rgb, cv2.COLOR_RGB2GRAY)
@@ -498,7 +525,8 @@ class InferManager(base.InferManager):
                 mask = morphology.binary_dilation(mask, morphology.disk(16))
                 return mask
 
-            self.wsi_mask = np.array(simple_get_mask() > 0, dtype=np.uint8)
+            #self.wsi_mask = np.array(simple_get_mask() > 0, dtype=np.uint8)
+            self.wsi_mask = np.ones(self.wsi_proc_shape,dtype=np.uint8)
         if np.sum(self.wsi_mask) == 0:
             log_info("Skip due to empty mask!")
             return

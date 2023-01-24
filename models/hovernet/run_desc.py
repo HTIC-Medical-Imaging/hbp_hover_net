@@ -2,12 +2,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
-
+import tensorrt as trt
 from misc.utils import center_pad_to_shape, cropping_center
 from .utils import crop_to_shape, dice_loss, mse_loss, msge_loss, xentropy_loss
+# import pycuda.driver as cuda
 
 from collections import OrderedDict
 
+
+from ctypes import cdll, c_char_p
+libcudart = cdll.LoadLibrary('libcudart.so')
+libcudart.cudaGetErrorString.restype = c_char_p
+
+def cudaSetDevice(device_idx):
+    ret = libcudart.cudaSetDevice(device_idx)
+    if ret != 0:
+        error_string = libcudart.cudaGetErrorString(ret)
+        raise RuntimeError("cudaSetDevice: " + error_string)
 ####
 def train_step(batch_data, run_info):
     # TODO: synchronize the attach protocol
@@ -168,6 +179,107 @@ def valid_step(batch_data, run_info):
 
 
 ####
+def trt_version():
+    return trt.__version__
+
+
+def torch_version():
+    return torch.__version__
+
+def torch_dtype_to_trt(dtype):
+    if trt_version() >= '7.0' and dtype == torch.bool:
+        return trt.bool
+    elif dtype == torch.int8:
+        return trt.int8
+    elif dtype == torch.int32:
+        return trt.int32
+    elif dtype == torch.float16:
+        return trt.float16
+    elif dtype == torch.float32:
+        return trt.float32
+    else:
+        raise TypeError("%s is not supported by tensorrt" % dtype)
+
+
+def torch_dtype_from_trt(dtype):
+    if dtype == trt.int8:
+        return torch.int8
+    elif trt_version() >= '7.0' and dtype == trt.bool:
+        return torch.bool
+    elif dtype == trt.int32:
+        return torch.int32
+    elif dtype == trt.float16:
+        return torch.float16
+    elif dtype == trt.float32:
+        return torch.float32
+    else:
+        raise TypeError("%s is not supported by torch" % dtype)
+
+
+def torch_device_to_trt(device):
+    if device.type == torch.device("cuda").type:
+        return trt.TensorLocation.DEVICE
+    elif device.type == torch.device("cpu").type:
+        return trt.TensorLocation.HOST
+    else:
+        return TypeError("%s is not supported by tensorrt" % device)
+
+
+def torch_device_from_trt(device):
+    if device == trt.TensorLocation.DEVICE:
+        return torch.device("cuda")
+    elif device == trt.TensorLocation.HOST:
+        return torch.device("cpu")
+    else:
+        return TypeError("%s is not supported by torch" % device)
+    
+
+def infer_trt_step(batch_data,gpu_id,engine):
+
+    torch.cuda.set_device(gpu_id)
+
+    pred_dict = OrderedDict()
+    patch_imgs_gpu = batch_data.to(f"cuda:{gpu_id}").type(torch.float32)
+    patch_imgs_gpu = patch_imgs_gpu.contiguous()
+    d_input = patch_imgs_gpu.data_ptr()
+#     print(batch_data.shape)
+    pred_tensor = torch.empty(
+        size = (batch_data.shape[0],10,164,164) , 
+        dtype = torch_dtype_from_trt(engine.get_binding_dtype(engine.get_binding_index("3721"))), 
+        device = gpu_id)
+    pred_tensor = pred_tensor.to("cuda")
+    d_output = pred_tensor.data_ptr()
+
+    with engine.create_execution_context() as context:
+        context.execute_v2(bindings=[int(d_input), int(d_output)])
+
+#     cuda.memcpy_dtoh_async(h_output, d_output, stream)
+    # Synchronize the stream
+#     stream.synchronize()
+    # Return the host output.
+    
+    out = pred_tensor.reshape((batch_data.shape[0],10, 164, 164))
+    # d_output = d_output.reshape((batch_data.shape[0],10, 164, 164))
+    pred_dict = {}
+    pred_dict["tp"] = out[:,:6,:,:]
+    pred_dict["np"] = out[:,6:8,:,:]
+    pred_dict["hv"] = out[:,8:10,:,:]
+    
+    pred_dict = OrderedDict(
+            [[k, v.permute(0, 2, 3, 1).contiguous()] for k, v in pred_dict.items()]
+        )
+    pred_dict["np"] = F.softmax(pred_dict["np"], dim=-1)[..., 1:]
+    if "tp" in pred_dict:
+        type_map = F.softmax(pred_dict["tp"], dim=-1)
+        type_map = torch.argmax(type_map, dim=-1, keepdim=True)
+        type_map = type_map.type(torch.float32)
+        pred_dict["tp"] = type_map
+    pred_output = torch.cat(list(pred_dict.values()), -1)
+
+    # * Its up to user to define the protocol to process the raw output per step!
+    return pred_output.cpu().numpy(),gpu_id
+
+
 def infer_step(batch_data, model):
 
     ####

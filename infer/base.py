@@ -14,10 +14,20 @@ import numpy as np
 import torch
 import torch.utils.data as data
 import tqdm
-
+import tensorrt as trt
 from run_utils.utils import convert_pytorch_checkpoint
 
+TRT_LOGGER = trt.Logger(min_severity =trt.ILogger.INTERNAL_ERROR)
 
+from ctypes import cdll, c_char_p
+libcudart = cdll.LoadLibrary('libcudart.so')
+libcudart.cudaGetErrorString.restype = c_char_p
+
+def cudaSetDevice(device_idx):
+    ret = libcudart.cudaSetDevice(device_idx)
+    if ret != 0:
+        error_string = libcudart.cudaGetErrorString(ret)
+        raise RuntimeError("cudaSetDevice: " + error_string)
 ####
 class InferManager(object):
     def __init__(self, **kwargs):
@@ -58,20 +68,33 @@ class InferManager(object):
         associated run steps to process each data batch.
         
         """
-        model_desc = import_module("models.hovernet.net_desc")
-        model_creator = getattr(model_desc, "create_model")
+        engines = []
+        if self.method["model_path"] != None:
+            for gpu_id in range(len(self.method['gpu_list'])):
+                torch.cuda.set_device(gpu_id)
+                with open(self.method["model_path"], "rb") as f, trt.Runtime(TRT_LOGGER) as runtime:
+                    engines.append(runtime.deserialize_cuda_engine(f.read()))
+                print(f"GPU {gpu_id} Loaded")
+        else:
+            model_desc = import_module("models.hovernet.net_desc")
+            model_creator = getattr(model_desc, "create_model")
 
-        net = model_creator(**self.method["model_args"])
-        saved_state_dict = torch.load(self.method["model_path"])["desc"]
-        saved_state_dict = convert_pytorch_checkpoint(saved_state_dict)
+            net = model_creator(**self.method["model_args"])
+            saved_state_dict = torch.load(self.method["model_path"])["desc"]
+            saved_state_dict = convert_pytorch_checkpoint(saved_state_dict)
 
-        net.load_state_dict(saved_state_dict, strict=True)
-        net = torch.nn.DataParallel(net)
-        net = net.to("cuda")
-
+            net.load_state_dict(saved_state_dict, strict=True)
+            net = torch.nn.DataParallel(net)
+            net = net.to("cuda")
+        
+        
         module_lib = import_module("models.hovernet.run_desc")
         run_step = getattr(module_lib, "infer_step")
-        self.run_step = lambda input_batch: run_step(input_batch, net)
+        run_step_trt = getattr(module_lib, "infer_trt_step")
+        
+        # self.run_step = lambda input_batch: run_step(input_batch, net)
+
+        self.run_step = lambda input_batch,device: run_step_trt(input_batch, device, engines[device])
 
         module_lib = import_module("models.hovernet.post_proc")
         self.post_proc_func = getattr(module_lib, "process")

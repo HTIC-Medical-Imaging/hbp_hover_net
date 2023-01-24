@@ -112,6 +112,8 @@ if __name__ == '__main__':
     args.pop('--version')
     gpu_list = args.pop('--gpu')
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu_list
+    # os.environ['CUDA_LAUNCH_BLOCKING'] = 1
+    gpu_list = list(map(int,gpu_list.split(',')))
 
     nr_gpus = torch.cuda.device_count()
     log_info('Detect #GPUS: %d' % nr_gpus)
@@ -129,6 +131,7 @@ if __name__ == '__main__':
                 'mode'       : args['model_mode'],
             },
             'model_path' : args['model_path'],
+            'gpu_list' : gpu_list
         },
         'type_info_path'  : None if args['type_info_path'] == '' \
                             else args['type_info_path'],
