@@ -361,6 +361,52 @@ class InferManager(base.InferManager):
             pbar.update()
         pbar.close()
         return accumulated_patch_output
+    
+    def __dummy_run_model(self, patch_top_left_list, pbar_desc):
+        # TODO: the cost of creating dataloader may not be cheap ?
+
+        dataset = SerializeArray(
+            "%s/cache_chunk.npy" % self.cache_path,
+            patch_top_left_list,
+            self.patch_input_shape,
+        )
+
+
+        dataloader = data.DataLoader(
+            dataset,
+            num_workers=self.nr_inference_workers,
+            batch_size=self.batch_size,
+            drop_last=False,
+#             pin_memory = True
+        )
+
+        pbar = tqdm.tqdm(
+            desc=pbar_desc,
+            leave=True,
+            total=int(len(dataloader)),
+            ncols=80,
+            ascii=True,
+            position=0,
+        )
+        # run inference on input patches
+        accumulated_patch_output = []
+        for batch_idx, batch_data in enumerate(dataloader):
+            
+            
+            sample_data_list, sample_info_list = batch_data
+            sample_output_list = sample_data_list
+            
+#             sample_output_list = self.run_step(sample_data_list)
+            
+            sample_info_list = sample_info_list.numpy()
+            curr_batch_size = sample_output_list.shape[0]
+            sample_output_list = np.split(sample_output_list, curr_batch_size, axis=0)
+            sample_info_list = np.split(sample_info_list, curr_batch_size, axis=0)
+            sample_output_list = list(zip(sample_info_list, sample_output_list))
+            accumulated_patch_output.extend(sample_output_list)
+            pbar.update()
+        pbar.close()
+        return accumulated_patch_output
 
     def __select_valid_patches(self, patch_info_list, has_output_info=True):
         """Select valid patches from the list of input patch information.
@@ -438,9 +484,17 @@ class InferManager(base.InferManager):
 #             patch_output_list = self.__run_trt_model(
 #                 chunk_patch_info_list[:, 0, 0], pbar_desc
 #             )
-            patch_output_list = self.__run_model(
-                chunk_patch_info_list[:, 0, 0], pbar_desc
-            )
+            try:
+                patch_output_list = self.__run_model(
+                    chunk_patch_info_list[:, 0, 0], pbar_desc
+                )
+            except RuntimeError as er:
+                print(er)
+                continue
+
+#             patch_output_list = self.__dummy_run_model(
+#                 chunk_patch_info_list[:, 0, 0], pbar_desc
+#             )   
 
             proc_pool.apply_async(
                 _assemble_and_flush,
@@ -452,6 +506,7 @@ class InferManager(base.InferManager):
 
     def __dispatch_post_processing(self, tile_info_list, callback):
         """Post processing initialisation."""
+        print('post_proc')
         proc_pool = None
         if self.nr_post_proc_workers > 0:
             proc_pool = ProcessPoolExecutor(self.nr_post_proc_workers)
@@ -529,7 +584,7 @@ class InferManager(base.InferManager):
         chunk_input_shape = np.array(self.chunk_shape)
         patch_input_shape = np.array(self.patch_input_shape)
         patch_output_shape = np.array(self.patch_output_shape)
-
+        print(wsi_path)
         path_obj = pathlib.Path(wsi_path)
         wsi_ext = path_obj.suffix
         wsi_name = path_obj.stem
@@ -606,7 +661,7 @@ class InferManager(base.InferManager):
         # self.wsi_pred_map = np.load('%s/pred_map.npy' % self.cache_path, mmap_mode='r')
         end = time.perf_counter()
         log_info("Preparing Input Output Placement: {0}".format(end - start))
-
+        print(self.wsi_proc_shape, chunk_input_shape, patch_input_shape, patch_output_shape)
         # * raw prediction
         start = time.perf_counter()
         chunk_info_list, patch_info_list = _get_chunk_patch_info(
@@ -817,5 +872,5 @@ class InferManager(base.InferManager):
                 log_info("Finish")
             except:
                 logging.exception("Crash")
-        rm_n_mkdir(self.cache_path)  # clean up all cache
+        # rm_n_mkdir(self.cache_path)  # clean up all cache
         return
