@@ -68,14 +68,22 @@ class InferManager(object):
         associated run steps to process each data batch.
         
         """
-        engines = []
-        if self.method["model_path"] != None:
+        
+        module_lib = import_module("models.hovernet.run_desc")
+        run_step = getattr(module_lib, "infer_step")
+        run_step_trt = getattr(module_lib, "infer_trt_step")
+        
+        if "trt_model_path" in self.method:
+            engines = []
             for gpu_id in range(len(self.method['gpu_list'])):
                 torch.cuda.set_device(gpu_id)
-                with open(self.method["model_path"], "rb") as f, trt.Runtime(TRT_LOGGER) as runtime:
+                with open(self.method["trt_model_path"], "rb") as f, trt.Runtime(TRT_LOGGER) as runtime:
                     engines.append(runtime.deserialize_cuda_engine(f.read()))
                 print(f"GPU {gpu_id} Loaded")
-        else:
+                
+            self.run_step = lambda input_batch,device: run_step_trt(input_batch, device, engines[device])
+            
+        elif 'model_path' in self.method:
             model_desc = import_module("models.hovernet.net_desc")
             model_creator = getattr(model_desc, "create_model")
 
@@ -87,14 +95,11 @@ class InferManager(object):
             net = torch.nn.DataParallel(net)
             net = net.to("cuda")
         
-        
-        module_lib = import_module("models.hovernet.run_desc")
-        run_step = getattr(module_lib, "infer_step")
-        run_step_trt = getattr(module_lib, "infer_trt_step")
-        
-        # self.run_step = lambda input_batch: run_step(input_batch, net)
+            self.run_step = lambda input_batch: run_step(input_batch, net)
 
-        self.run_step = lambda input_batch,device: run_step_trt(input_batch, device, engines[device])
+        else:
+            print('warning: self.run_step might be improper',self.run_step)
+            print(self.method)
 
         module_lib = import_module("models.hovernet.post_proc")
         self.post_proc_func = getattr(module_lib, "process")

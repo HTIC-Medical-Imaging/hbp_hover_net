@@ -17,7 +17,7 @@ import sys
 import time
 from functools import reduce
 from importlib import import_module
-from concurrent.futures import ThreadPoolExecutor
+# from concurrent.futures import ThreadPoolExecutor
 import cv2
 import numpy as np
 import psutil
@@ -35,7 +35,7 @@ from misc.utils import (
     rm_n_mkdir,
 )
 from misc.wsi_handler import get_file_handler
-import time
+# import time
 from . import base
 
 thread_lock = Lock()
@@ -258,23 +258,20 @@ def _assemble_and_flush(wsi_pred_map_mmap_path, chunk_info, patch_output_list):
 
 ####
 class InferManager(base.InferManager):
-    def __run_model(self, patch_top_left_list, pbar_desc):
-        # TODO: the cost of creating dataloader may not be cheap ?
-
-        start = time.time()
+    
+    def __run_trt_model(self, patch_top_left_list, pbar_desc):
         dataset = SerializeArray(
             "%s/cache_chunk.npy" % self.cache_path,
             patch_top_left_list,
             self.patch_input_shape,
         )
-
-
+        
         dataloader = data.DataLoader(
             dataset,
             num_workers=self.nr_inference_workers,
             batch_size=self.batch_size,
-            drop_last=True,
-            pin_memory = True
+            drop_last=False,
+#             pin_memory = True
         )
 
         pbar = tqdm.tqdm(
@@ -285,7 +282,6 @@ class InferManager(base.InferManager):
             ascii=True,
             position=0,
         )
-        # print(f"time taken for dataloader {time.time() - start}")
         # run inference on input patches
         accumulated_patch_output = []
         for batch_idx, batch_data in enumerate(dataloader):
@@ -308,10 +304,53 @@ class InferManager(base.InferManager):
                 for val,dev in executor.map(self.run_step,brain_batches,list(range(num_gpu))):
                     sample_output_list[dev] = val
 
+            sample_output_list = np.concatenate([sample_output_list[i] for i in range(num_gpu)],axis=0)
             
             print(time.time() - start)
-            # sample_output_list = self.run_step(sample_data_list,device)
-            sample_output_list = np.concatenate([sample_output_list[i] for i in range(num_gpu)],axis=0)
+            
+            sample_info_list = sample_info_list.numpy()
+            curr_batch_size = sample_output_list.shape[0]
+            sample_output_list = np.split(sample_output_list, curr_batch_size, axis=0)
+            sample_info_list = np.split(sample_info_list, curr_batch_size, axis=0)
+            sample_output_list = list(zip(sample_info_list, sample_output_list))
+            accumulated_patch_output.extend(sample_output_list)
+            pbar.update()
+        pbar.close()
+        return accumulated_patch_output
+    
+    def __run_model(self, patch_top_left_list, pbar_desc):
+        # TODO: the cost of creating dataloader may not be cheap ?
+
+        dataset = SerializeArray(
+            "%s/cache_chunk.npy" % self.cache_path,
+            patch_top_left_list,
+            self.patch_input_shape,
+        )
+
+
+        dataloader = data.DataLoader(
+            dataset,
+            num_workers=self.nr_inference_workers,
+            batch_size=self.batch_size,
+            drop_last=False,
+#             pin_memory = True
+        )
+
+        pbar = tqdm.tqdm(
+            desc=pbar_desc,
+            leave=True,
+            total=int(len(dataloader)),
+            ncols=80,
+            ascii=True,
+            position=0,
+        )
+        # run inference on input patches
+        accumulated_patch_output = []
+        for batch_idx, batch_data in enumerate(dataloader):
+
+            
+            sample_data_list, sample_info_list = batch_data
+            sample_output_list = self.run_step(sample_data_list)
             
             sample_info_list = sample_info_list.numpy()
             curr_batch_size = sample_output_list.shape[0]
@@ -396,6 +435,9 @@ class InferManager(base.InferManager):
             np.save("%s/cache_chunk.npy" % self.cache_path, chunk_data)
 
             pbar_desc = "Process Chunk %d/%d" % (idx, chunk_info_list.shape[0])
+#             patch_output_list = self.__run_trt_model(
+#                 chunk_patch_info_list[:, 0, 0], pbar_desc
+#             )
             patch_output_list = self.__run_model(
                 chunk_patch_info_list[:, 0, 0], pbar_desc
             )
