@@ -57,9 +57,23 @@ def to_slice(ext,step=1):
 
 class MmapCreator:
     def __init__(self,jp2path,mmapdir='/data/special/mmapcache',shp=(4096,4096),padding=0):
+        # print(jp2path)
+        # print(os.listdir(os.path.dirname(jp2path)))
+        
         self.jp2path = jp2path
-        self._jp2handle = glymur.Jp2k(jp2path)
+
+        if not os.path.exists(self.jp2path):
+            raise RuntimeError('file not exists')
+        
+        self._jp2handle = glymur.Jp2k(self.jp2path)
+        if self._jp2handle is None :
+            raise RuntimeError('glymur handle is invalid')
+        # else:
+            # print(self._jp2handle._readonly)
+            # self._jp2handle.parse()
+            # self._jp2handle._initialize_shape()
         self.imageshape = self._jp2handle.shape
+        print(self.imageshape)
         self.ntiles_c = round(self.imageshape[1]/shp[1]) # FIXME: was ceil, changing to round for compat with ui
         self.ntiles_r = round(self.imageshape[0]/shp[0]) # not actually used anywhere - only print
         self.ntiles = self.ntiles_r * self.ntiles_c
