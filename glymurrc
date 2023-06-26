@@ -1,2 +1,2 @@
 [library]
-openjp2: /workspace/miniconda3/lib/libopenjp2.so
+openjp2: /workspace/lib/libopenjp2.so.2.3.1
