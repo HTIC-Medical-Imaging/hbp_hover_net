@@ -604,7 +604,23 @@ class InferManager(base.InferManager):
         else:
             
 
-            from skimage import morphology
+            from skimage import morphology, transform
+            def get_salient_mask():
+                percent=0.6
+                log_info(
+                    "WARNING: No mask found, generating mask via thresholding at 1.25x!"
+                )
+                scaled_wsi_mag = 1.25  # ! hard coded
+                wsi_thumb_rgb = self.wsi_handler.get_full_img(read_mag=scaled_wsi_mag)
+                assert percent > 0 and percent < 1
+                # (100-percent)th percentile threshold abs(arr), and select top patches which cover the required percentage of image
+                nr,nc=wsi_thumb_rgb.shape[:2]
+                mapimg = transform.resize(np.abs(wsi_thumb_rgb),(nr//100,nc//100),order=1)
+                
+                th = np.percentile(mapimg,100*(1-percent))
+                msk_small = mapimg>th
+                msk_salient = transform.resize(msk_small,(nr,nc),order=0)
+                return msk_salient.astype(bool)
 
             # simple method to extract tissue regions using intensity thresholding and morphological operations
             def simple_get_mask():
@@ -623,7 +639,9 @@ class InferManager(base.InferManager):
                 return mask
 
             #self.wsi_mask = np.array(simple_get_mask() > 0, dtype=np.uint8)
-            self.wsi_mask = np.ones(self.wsi_proc_shape,dtype=np.uint8)
+            # self.wsi_mask = np.ones(self.wsi_proc_shape,dtype=np.uint8)
+            self.wsi_mask = np.array(get_salient_mask() > 0, dtype=np.uint8)
+
         if np.sum(self.wsi_mask) == 0:
             log_info("Skip due to empty mask!")
             return
@@ -854,7 +872,7 @@ class InferManager(base.InferManager):
             if not os.path.exists(self.output_dir + "/mask/"):
                 rm_n_mkdir(self.output_dir + "/mask/")
 
-        wsi_path_list = glob.glob(self.input_dir + "/*")
+        wsi_path_list = glob.glob(self.input_dir + "/*.dat")
         wsi_path_list.sort()  # ensure ordering
         for wsi_path in wsi_path_list[:]:
             wsi_base_name = pathlib.Path(wsi_path).stem

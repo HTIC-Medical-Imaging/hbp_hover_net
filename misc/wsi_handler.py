@@ -6,8 +6,10 @@ from skimage import color
 import re
 import subprocess
 
-import openslide
-
+try:
+    import openslide
+except:
+    print('openslide not installed')
 
 class FileHandler(object):
     def __init__(self):
@@ -109,7 +111,7 @@ class MemmapHandler(FileHandler):
         self.metadata = self.__load_metadata()
 
     def __load_metadata(self):
-        magnification_level = 40*(1/np.array([1, 2, 4, 8, 16, 32, 64, 128, 256, 512]))
+        magnification_level = 20*(1/np.array([1, 2, 4, 8, 16, 32, 64, 128, 256, 512]))
         
         metadata = [
             ("available_mag", magnification_level),  # highest to lowest mag
@@ -129,6 +131,19 @@ class MemmapHandler(FileHandler):
             ]
         return np.array(region)[..., :3]
     
+    def get_full_img(self, read_mag=None, read_mpp=None):
+        """Only use `read_mag` or `read_mpp`, not both, prioritize `read_mpp`.
+
+        `read_mpp` is in X, Y format.
+        """
+
+        read_lv, scale_factor = self._get_read_info(
+            read_mag=read_mag, read_mpp=read_mpp
+        )
+
+        return self.image_ptr[::scale_factor,::scale_factor]
+
+
 class OpenSlideHandler(FileHandler):
     """Class for handling OpenSlide supported whole-slide images."""
 

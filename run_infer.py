@@ -74,7 +74,7 @@ options:
 import torch
 import logging
 import os
-import copy
+# import copy
 from misc.utils import log_info
 from docopt import docopt
 
