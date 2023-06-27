@@ -1,7 +1,7 @@
 INPUT_JP2=$1
 OUTPUT_DIR=$2
 CACHE_PATH=$3
-MODEL_PATH=weights/hovernet_fast_pannuke_type_tf2pytorch.tar
+MODEL_PATH=/workspace/weights/hovernet_fast_pannuke_type_tf2pytorch.tar
 N_INF_WORKERS=$4
 N_PP_WORKERS=$5
 BATCH_SIZE=$6
