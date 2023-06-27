@@ -1,5 +1,5 @@
 import glymur
-glymur.set_option('lib.num_threads',36)
+glymur.set_option('lib.num_threads',48)
 glymur.set_option('print.codestream',False)
 glymur.set_option('print.xml',False)
 import pickle
@@ -56,7 +56,8 @@ def to_slice(ext,step=1):
     return rsl,csl 
 
 def workerfunc(obj,tilenum):
-    return obj[tilenum] # for __getitem__
+     arr, rgn, url = obj[tilenum] # for __getitem__
+     return arr,rgn, url, tilenum, os.getpid()
 
 class MmapCreator:
     def __init__(self,jp2path,mmapdir='/data/special/mmapcache',shp=(4096,4096),padding=0):
@@ -80,6 +81,7 @@ class MmapCreator:
         self.ntiles_c = round(self.imageshape[1]/shp[1]) # FIXME: was ceil, changing to round for compat with ui
         self.ntiles_r = round(self.imageshape[0]/shp[0]) # not actually used anywhere - only print
         self.ntiles = self.ntiles_r * self.ntiles_c
+        print(self.ntiles)
         self.padding=padding
         self.tileshape = (shp[0],shp[1],3)
         loc,bn = os.path.split(jp2path)
@@ -176,20 +178,26 @@ class MmapCreator:
         print(plan)
         
         # workerfunc2 = partial(workerfunc,self)
-        # data,ext,_=workerfunc2(30)
+        data,ext,url,tilenum,pid=workerfunc(self,self.ntiles-1)
         start=datetime.now()
         print('load started...',end="")
         # if True:
+        pid_tiles = {}
         with ProcessPoolExecutor(max_workers=plan.nworkers) as executor:
-            for data,extent,_ in executor.map(workerfunc,self,range(plan.worksize),chunksize=plan.rounds):
+            for data,extent,url,tilenum,pid in executor.map(workerfunc,self,range(plan.worksize),chunksize=plan.rounds):
             # for ii in tqdm(range(plan.worksize)):
                 # data,extent,_ = workerfunc2(ii)
                 rsl,csl = to_slice(extent)
                 self.handle[rsl,csl,:]=data
+                if pid not in pid_tiles:
+                    pid_tiles[pid]=[]
+                pid_tiles[pid].append(tilenum)
+
         print('loaded. syncing...',end="")
         loadend = datetime.now()
         self.handle.flush()
         flushend = datetime.now()
         print('done')
-        
+        for pid,tiles in pid_tiles.items():
+            print(pid,len(tiles))
         return loadend-start,flushend-loadend # loadtime, flushtime
