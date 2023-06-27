@@ -140,6 +140,7 @@ class MmapCreator:
     def __getitem__(self,tilenum):
         
         # print('access %d' % tilenum)
+        print('.',end="")
         ext = self.get_tile_extent(tilenum)
 
         ext2, region, mirrorvals = self.get_padded_extent(ext)
