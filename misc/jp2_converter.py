@@ -92,7 +92,7 @@ class MmapCreator:
         self.infoname = self.mmapfilename.replace('.dat','_info.pkl')
 
     def get_tile_extent(self,tilenum):
-        assert tilenum<self.ntiles
+        # assert tilenum<self.ntiles
         tile_r = tilenum//self.ntiles_c
         tile_c = tilenum % self.ntiles_c
         tl = Point(self.tileshape[1]*tile_c,self.tileshape[0]*tile_r)
@@ -140,30 +140,33 @@ class MmapCreator:
         return ext2, region, (mirror_top, mirror_left, mirror_bot, mirror_right)
 
     def __getitem__(self,tilenum):
-        
-        # print('access %d' % tilenum)
-        print('.',end="",flush=True)
-        ext = self.get_tile_extent(tilenum)
+        if tilenum < self.ntiles:
+            # print('access %d' % tilenum)
+            print('.',end="",flush=True)
+            ext = self.get_tile_extent(tilenum)
 
-        ext2, region, mirrorvals = self.get_padded_extent(ext)
-        
-        imgurl = None
-
-        df = int(self.dec_factor)
-        
-        arr = self._jp2handle[to_slice(ext2,df)]
+            ext2, region, mirrorvals = self.get_padded_extent(ext)
             
-        (mirror_top, mirror_left, mirror_bot, mirror_right) = mirrorvals
-        if mirror_top > 0:
-            arr = np.pad(arr,[(mirror_top,0),(0,0),(0,0)],mode='reflect')
-        if mirror_left > 0:
-            arr = np.pad(arr,[(0,0),(mirror_left,0),(0,0)],mode='reflect')
-        if mirror_bot> 0:
-            arr = np.pad(arr,[(0,mirror_bot),(0,0),(0,0)],mode='reflect')
-        if mirror_right > 0:
-            arr = np.pad(arr,[(0,0),(0,mirror_right),(0,0)],mode='reflect')
-        
-        return arr, region, imgurl
+            imgurl = None
+
+            df = int(self.dec_factor)
+            
+            arr = self._jp2handle[to_slice(ext2,df)]
+                
+            (mirror_top, mirror_left, mirror_bot, mirror_right) = mirrorvals
+            if mirror_top > 0:
+                arr = np.pad(arr,[(mirror_top,0),(0,0),(0,0)],mode='reflect')
+            if mirror_left > 0:
+                arr = np.pad(arr,[(0,0),(mirror_left,0),(0,0)],mode='reflect')
+            if mirror_bot> 0:
+                arr = np.pad(arr,[(0,mirror_bot),(0,0),(0,0)],mode='reflect')
+            if mirror_right > 0:
+                arr = np.pad(arr,[(0,0),(0,mirror_right),(0,0)],mode='reflect')
+            
+            return arr, region, imgurl
+        else:
+            print('#',end="",flush=True)
+            return np.zeros((0,0,3)), None, None
 
     def create(self):
         assert not os.path.exists(self.infoname)
@@ -187,8 +190,9 @@ class MmapCreator:
             for data,extent,url,tilenum,pid in executor.map(workerfunc,self,range(plan.worksize),chunksize=plan.rounds):
             # for ii in tqdm(range(plan.worksize)):
                 # data,extent,_ = workerfunc2(ii)
-                rsl,csl = to_slice(extent)
-                self.handle[rsl,csl,:]=data
+                if extent is not None:
+                    rsl,csl = to_slice(extent)
+                    self.handle[rsl,csl,:]=data
                 if pid not in pid_tiles:
                     pid_tiles[pid]=[]
                 pid_tiles[pid].append(tilenum)
