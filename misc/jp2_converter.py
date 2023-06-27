@@ -55,8 +55,11 @@ def to_slice(ext,step=1):
     csl = slice(int(ext.point1.x),int(ext.point2.x),step)
     return rsl,csl 
 
+def workerfunc(obj,tilenum):
+    return obj[tilenum] # for __getitem__
+
 class MmapCreator:
-    def __init__(self,jp2path,mmapdir='/data/special/mmapcache',shp=(4096,4096),padding=0):
+    def __init__(self,jp2path,mmapdir='/data/special/mmapcache',shp=(2048,2048),padding=0):
         # print(jp2path)
         # print(os.listdir(os.path.dirname(jp2path)))
         
@@ -170,7 +173,8 @@ class MmapCreator:
         
         plan = get_multiproc_plan(self.ntiles,minwork=10)
         print(plan)
-        workerfunc2 = self.__getitem__
+        
+        workerfunc2 = partial(workerfunc,self)
         # data,ext,_=workerfunc2(30)
         start=datetime.now()
         print('load started...',end="")
