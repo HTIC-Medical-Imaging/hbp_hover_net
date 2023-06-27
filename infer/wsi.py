@@ -605,22 +605,34 @@ class InferManager(base.InferManager):
             
 
             from skimage import morphology, transform
-            def get_salient_mask():
-                percent=0.6
+            def get_salient_mask(percent=0.6):
+                
                 log_info(
                     "WARNING: No mask found, generating mask via thresholding at 1.25x!"
                 )
-                scaled_wsi_mag = 1.25  # ! hard coded
+                scaled_wsi_mag = 1.25/4  # ! hard coded
                 wsi_thumb_rgb = self.wsi_handler.get_full_img(read_mag=scaled_wsi_mag)
-                assert percent > 0 and percent < 1
+                gray = cv2.cvtColor(wsi_thumb_rgb, cv2.COLOR_RGB2GRAY)
+                blk = (wsi_thumb_rgb[:,:,0]<20) & (wsi_thumb_rgb[:,:,1]<20) & (wsi_thumb_rgb[:,:,2]<20)
+                blk = morphology.dilation(blk,morphology.square(39)) #
+                gray = np.where(blk,255,gray) 
+                
                 # (100-percent)th percentile threshold abs(arr), and select top patches which cover the required percentage of image
                 nr,nc=wsi_thumb_rgb.shape[:2]
-                mapimg = transform.resize(np.abs(wsi_thumb_rgb),(nr//100,nc//100),order=1)
-                
+                mapimg = transform.resize(np.abs(gray),(nr//30,nc//30),order=1)
+                print(mapimg.shape)
+                assert percent > 0 and percent < 1
                 th = np.percentile(mapimg,100*(1-percent))
-                msk_small = mapimg>th
-                msk_salient = transform.resize(msk_small,(nr,nc),order=0)
-                return msk_salient.astype(bool)
+                msk_small = mapimg<th 
+                msk_small = morphology.binary_dilation(msk_small, morphology.disk(3))
+                msk_small = morphology.remove_small_holes(msk_small, area_threshold=5 * 5)
+
+                mask = transform.resize(msk_small,(nr,nc),order=0)
+                # mask = morphology.remove_small_objects(
+                #     mask == 0, min_size=16 * 16, connectivity=2
+                # )
+                
+                return mask
 
             # simple method to extract tissue regions using intensity thresholding and morphological operations
             def simple_get_mask():
@@ -648,7 +660,7 @@ class InferManager(base.InferManager):
         if self.save_mask:
             cv2.imwrite("%s/mask/%s.png" % (output_dir, wsi_name), self.wsi_mask * 255)
         if self.save_thumb:
-            wsi_thumb_rgb = self.wsi_handler.get_full_img(read_mag=1.25)
+            wsi_thumb_rgb = self.wsi_handler.get_full_img(read_mag=1.25/4)
             cv2.imwrite(
                 "%s/thumb/%s.png" % (output_dir, wsi_name),
                 cv2.cvtColor(wsi_thumb_rgb, cv2.COLOR_RGB2BGR),
@@ -660,23 +672,24 @@ class InferManager(base.InferManager):
         out_ch = 3 if self.method["model_args"]["nr_types"] is None else 4
         self.wsi_inst_info = {}
         # TODO: option to use entire RAM if users have too much available, would be faster than mmap
-        self.wsi_inst_map = np.lib.format.open_memmap(
-            "%s/pred_inst.npy" % self.cache_path,
-            mode="w+",
-            shape=tuple(self.wsi_proc_shape),
-            dtype=np.int32,
-        )
-        # self.wsi_inst_map[:] = 0 # flush fill
+        if False:
+            self.wsi_inst_map = np.lib.format.open_memmap(
+                "%s/pred_inst.npy" % self.cache_path,
+                mode="w+",
+                shape=tuple(self.wsi_proc_shape),
+                dtype=np.int32,
+            )
+            # self.wsi_inst_map[:] = 0 # flush fill
 
-        # warning, the value within this is uninitialized
-        self.wsi_pred_map = np.lib.format.open_memmap(
-            "%s/pred_map.npy" % self.cache_path,
-            mode="w+",
-            shape=tuple(self.wsi_proc_shape) + (out_ch,),
-            dtype=np.float32,
-        )
-        # ! for debug
-        # self.wsi_pred_map = np.load('%s/pred_map.npy' % self.cache_path, mmap_mode='r')
+            # warning, the value within this is uninitialized
+            self.wsi_pred_map = np.lib.format.open_memmap(
+                "%s/pred_map.npy" % self.cache_path,
+                mode="w+",
+                shape=tuple(self.wsi_proc_shape) + (out_ch,),
+                dtype=np.float32,
+            )
+            # ! for debug
+            # self.wsi_pred_map = np.load('%s/pred_map.npy' % self.cache_path, mmap_mode='r')
         end = time.perf_counter()
         log_info("Preparing Input Output Placement: {0}".format(end - start))
         print(self.wsi_proc_shape, chunk_input_shape, patch_input_shape, patch_output_shape)

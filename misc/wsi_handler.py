@@ -114,7 +114,7 @@ class MemmapHandler(FileHandler):
         magnification_level = 20*(1/np.array([1, 2, 4, 8, 16, 32, 64, 128, 256, 512]))
         
         metadata = [
-            ("available_mag", magnification_level),  # highest to lowest mag
+            ("available_mag", magnification_level.tolist()),  # highest to lowest mag
             ("base_mag", magnification_level[0]),
             ("vendor", "custom"),
             ("mpp  ", np.array([0.5,0.5])),
@@ -140,7 +140,10 @@ class MemmapHandler(FileHandler):
         read_lv, scale_factor = self._get_read_info(
             read_mag=read_mag, read_mpp=read_mpp
         )
-
+        print(read_lv,scale_factor,read_mag in self.metadata['available_mag'])
+        
+        if scale_factor is None:
+            scale_factor = 2**read_lv
         return self.image_ptr[::scale_factor,::scale_factor]
 
 

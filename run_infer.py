@@ -108,7 +108,7 @@ if __name__ == '__main__':
         exit()
 
     sub_args = docopt(sub_cli_dict[sub_cmd], argv=sub_cmd_args, help=True)
-    
+    print(sub_args)
     args.pop('--version')
     gpu_list = args.pop('--gpu')
     os.environ['CUDA_VISIBLE_DEVICES'] = gpu_list
