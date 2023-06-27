@@ -1,5 +1,5 @@
 import glymur
-glymur.set_option('lib.num_threads',12)
+glymur.set_option('lib.num_threads',36)
 glymur.set_option('print.codestream',False)
 glymur.set_option('print.xml',False)
 import pickle
@@ -59,7 +59,7 @@ def workerfunc(obj,tilenum):
     return obj[tilenum] # for __getitem__
 
 class MmapCreator:
-    def __init__(self,jp2path,mmapdir='/data/special/mmapcache',shp=(2048,2048),padding=0):
+    def __init__(self,jp2path,mmapdir='/data/special/mmapcache',shp=(4096,4096),padding=0):
         # print(jp2path)
         # print(os.listdir(os.path.dirname(jp2path)))
         
@@ -140,7 +140,7 @@ class MmapCreator:
     def __getitem__(self,tilenum):
         
         # print('access %d' % tilenum)
-        print('.',end="")
+        print('.',end="",flush=True)
         ext = self.get_tile_extent(tilenum)
 
         ext2, region, mirrorvals = self.get_padded_extent(ext)
@@ -175,13 +175,13 @@ class MmapCreator:
         plan = get_multiproc_plan(self.ntiles,minwork=10)
         print(plan)
         
-        workerfunc2 = partial(workerfunc,self)
+        # workerfunc2 = partial(workerfunc,self)
         # data,ext,_=workerfunc2(30)
         start=datetime.now()
         print('load started...',end="")
         # if True:
         with ProcessPoolExecutor(max_workers=plan.nworkers) as executor:
-            for data,extent,_ in executor.map(workerfunc2,range(plan.worksize),chunksize=plan.rounds):
+            for data,extent,_ in executor.map(workerfunc,self,range(plan.worksize),chunksize=plan.rounds):
             # for ii in tqdm(range(plan.worksize)):
                 # data,extent,_ = workerfunc2(ii)
                 rsl,csl = to_slice(extent)
