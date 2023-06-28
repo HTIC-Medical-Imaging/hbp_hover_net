@@ -59,12 +59,9 @@ def to_slice(ext,step=1):
     csl = slice(int(ext.point1.x),int(ext.point2.x),step)
     return rsl,csl 
 
-def workerfunc(obj,tilenum):
-     arr, rgn, url = obj[tilenum] # for __getitem__
-     return arr,rgn, url, tilenum, os.getpid()
 
-class MmapCreator:
-    def __init__(self,jp2path,mmapdir='/data/special/mmapcache',shp=(4096,4096),padding=0):
+class GlymurAccessor:
+    def __init__(self,jp2path,shp=(4096,4096),padding=0):
         # print(jp2path)
         # print(os.listdir(os.path.dirname(jp2path)))
         
@@ -88,12 +85,9 @@ class MmapCreator:
         print(self.ntiles)
         self.padding=padding
         self.tileshape = (shp[0],shp[1],3)
-        loc,bn = os.path.split(jp2path)
-        namepart = ".".join(bn.split('.')[:-1])
-        self.dec_factor = 1
-        self.mmapfilename = mmapdir+'/'+namepart+'.dat'
 
-        self.infoname = self.mmapfilename.replace('.dat','_info.pkl')
+        self.dec_factor = 1
+        
 
     def get_tile_extent(self,tilenum):
         # assert tilenum<self.ntiles
@@ -157,7 +151,7 @@ class MmapCreator:
             tic = datetime.now()
             arr = self._jp2handle[to_slice(ext2,df)]
             elapsed = datetime.now()-tic
-            print(f'{os.getpid()}:{elapsed}',end="",flush=True)
+            print(f'{os.getpid()}:{elapsed.microseconds//1000}',end=" ",flush=True)
             (mirror_top, mirror_left, mirror_bot, mirror_right) = mirrorvals
             if mirror_top > 0:
                 arr = np.pad(arr,[(mirror_top,0),(0,0),(0,0)],mode='reflect')
@@ -173,43 +167,55 @@ class MmapCreator:
             print('#',end="",flush=True)
             return np.zeros((0,0,3)), None, None
 
-    def create(self):
-        assert not os.path.exists(self.infoname)
 
-        info = {'dtype':'uint8', 'shape':self.imageshape,'mmname':self.mmapfilename,'fname':self.jp2path}
-        
-        pickle.dump(info,open(self.infoname,'wb'))
-        self.handle = np.memmap(self.mmapfilename,dtype='uint8',mode='w+',shape=self.imageshape )
-        
-        
-        plan = get_multiproc_plan(self.ntiles,minwork=10)
-        print(plan)
-        
-        # workerfunc2 = partial(workerfunc,self)
-        data,ext,url,tilenum,pid=workerfunc(self,self.ntiles-1)
-        start=datetime.now()
-        print('load started...',end="")
-        # if True:
-        pid_tiles = {}
-        with ProcessPoolExecutor(max_workers=plan.nworkers) as executor:
-            for data,extent,url,tilenum,pid in executor.map(workerfunc,self,range(plan.worksize),chunksize=plan.rounds):
-            # for ii in tqdm(range(plan.worksize)):
-                # data,extent,_ = workerfunc2(ii)
-                if extent is not None:
-                    rsl,csl = to_slice(extent)
-                    self.handle[rsl,csl,:]=data
-                if pid not in pid_tiles:
-                    pid_tiles[pid]=[]
-                pid_tiles[pid].append(tilenum)
+def workerfunc(accessor,tilenum):
+     arr, rgn, url = accessor[tilenum] # for __getitem__
+     return arr,rgn, url, tilenum, os.getpid()
 
-        print('loaded. syncing...',end="")
-        loadend = datetime.now()
-        self.handle.flush()
-        flushend = datetime.now()
-        print('done')
-        for pid,tiles in pid_tiles.items():
-            print(pid,len(tiles))
-        return loadend-start,flushend-loadend # loadtime, flushtime
+
+def create_mmap(accessor,mmapdir='/data/special/mmapcache'):
+    loc,bn = os.path.split(accessor.jp2path)
+    namepart = ".".join(bn.split('.')[:-1])
+    mmapfilename = mmapdir+'/'+namepart+'.dat'
+
+    infoname = mmapfilename.replace('.dat','_info.pkl')
+    assert not os.path.exists(infoname)
+
+    info = {'dtype':'uint8', 'shape':accessor.imageshape,'mmname':mmapfilename,'fname':accessor.jp2path}
+        
+    pickle.dump(info,open(infoname,'wb'))
+    handle = np.memmap(mmapfilename,dtype='uint8',mode='w+',shape=accessor.imageshape )
+    
+    
+    plan = get_multiproc_plan(accessor.ntiles,minwork=10)
+    print(plan)
+    
+    # workerfunc2 = partial(workerfunc,self)
+    # data,ext,url,tilenum,pid=workerfunc(accessor,accessor.ntiles-1)
+    start=datetime.now()
+    print('load started...',end="")
+    # if True:
+    pid_tiles = {}
+    with ProcessPoolExecutor(max_workers=plan.nworkers) as executor:
+        for data,extent,url,tilenum,pid in executor.map(workerfunc,accessor,range(plan.worksize),chunksize=plan.rounds):
+        # for ii in tqdm(range(plan.worksize)):
+            # data,extent,_ = workerfunc2(ii)
+            if extent is not None:
+                rsl,csl = to_slice(extent)
+                handle[rsl,csl,:]=data
+            if pid not in pid_tiles:
+                pid_tiles[pid]=[]
+            pid_tiles[pid].append(tilenum)
+
+    print('loaded. syncing...',end="")
+    loadend = datetime.now()
+    handle.flush()
+    flushend = datetime.now()
+    print('done')
+    for pid,tiles in pid_tiles.items():
+        print(pid,len(tiles))
+    
+    return loadend-start,flushend-loadend # loadtime, flushtime
 
 def workerfortest(tilenum):
     print('.',end="",flush=True)
