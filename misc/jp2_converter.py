@@ -205,3 +205,27 @@ class MmapCreator:
         for pid,tiles in pid_tiles.items():
             print(pid,len(tiles))
         return loadend-start,flushend-loadend # loadtime, flushtime
+
+def workerfortest(tilenum):
+    print('.',end="",flush=True)
+    return tilenum, os.getpid()
+
+def test_plan():
+    print('testing procplan')
+    plan = get_multiproc_plan(400,minwork=10)
+    print(plan)
+    pid_tiles = {}
+    print('starting map')
+    with ProcessPoolExecutor(max_workers=plan.nworkers) as executor:
+        for tilenum,pid in executor.map(workerfortest,range(plan.worksize),chunksize=plan.rounds):
+        
+            if pid not in pid_tiles:
+                pid_tiles[pid]=[]
+            pid_tiles[pid].append(tilenum)    
+
+    print('map done')    
+    for pid,tiles in pid_tiles.items():
+        print(pid,len(tiles))
+
+if __name__=="__main__":
+    test_plan()
