@@ -114,10 +114,12 @@ class InferManager(object):
             for info_name, info_value in inst_info.items():
                 # convert to jsonable
                 if isinstance(info_value, np.ndarray):
-                    info_value = info_value.tolist()
+                    info_value = np.round(info_value,2).tolist()
                 if "contour" in info_name:
                     new_inst_info2[info_name] = info_value
                 else:
+                    if "prob" in info_name:
+                        info_value = np.round(info_value,3)
                     new_inst_info1[info_name] = info_value
 
             new_dict1[int(inst_id)] = new_inst_info1
