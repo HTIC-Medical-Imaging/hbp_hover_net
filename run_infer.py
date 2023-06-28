@@ -88,14 +88,7 @@ if __name__ == '__main__':
     sub_cmd_args = args.pop('<args>')
 
     # ! TODO: where to save logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format='|%(asctime)s.%(msecs)03d| [%(levelname)s] %(message)s',datefmt='%Y-%m-%d|%H:%M:%S',
-        handlers=[
-            logging.FileHandler("debug.log"),
-            logging.StreamHandler()
-        ]
-    )
+    
 
     if args['--help'] and sub_cmd is not None:
         if sub_cmd in sub_cli_dict: 
@@ -178,7 +171,14 @@ if __name__ == '__main__':
             'save_mask'      : sub_args['save_mask'],
         })
     # ***
-    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='|%(asctime)s.%(msecs)03d| [%(levelname)s] %(message)s',datefmt='%Y-%m-%d|%H:%M:%S',
+        handlers=[
+            logging.FileHandler(sub_args['output_dir']+"/debug.log"),
+            logging.StreamHandler()
+        ]
+    )    
     if sub_cmd == 'tile':
         from infer.tile import InferManager
         infer = InferManager(**method_args)

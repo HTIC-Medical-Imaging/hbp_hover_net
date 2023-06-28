@@ -506,7 +506,7 @@ class InferManager(base.InferManager):
 
     def __dispatch_post_processing(self, tile_info_list, callback):
         """Post processing initialisation."""
-        print('post_proc')
+        # print('post_proc')
         proc_pool = None
         if self.nr_post_proc_workers > 0:
             proc_pool = ProcessPoolExecutor(self.nr_post_proc_workers)
@@ -672,7 +672,7 @@ class InferManager(base.InferManager):
         out_ch = 3 if self.method["model_args"]["nr_types"] is None else 4
         self.wsi_inst_info = {}
         # TODO: option to use entire RAM if users have too much available, would be faster than mmap
-        if False:
+        if True:
             self.wsi_inst_map = np.lib.format.open_memmap(
                 "%s/pred_inst.npy" % self.cache_path,
                 mode="w+",
@@ -690,6 +690,7 @@ class InferManager(base.InferManager):
             )
             # ! for debug
             # self.wsi_pred_map = np.load('%s/pred_map.npy' % self.cache_path, mmap_mode='r')
+        
         end = time.perf_counter()
         log_info("Preparing Input Output Placement: {0}".format(end - start))
         print(self.wsi_proc_shape, chunk_input_shape, patch_input_shape, patch_output_shape)
