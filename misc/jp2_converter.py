@@ -60,31 +60,32 @@ def to_slice(ext,step=1):
     csl = slice(int(ext.point1.x),int(ext.point2.x),step)
     return rsl,csl 
 
-class TifAccessor:
-    """read tif into RAM, simulate glymur array read"""
-    def __init__(self, tifname):
-        self.jp2path = tifname
-        self._jp2handle = imread(tifname)
         
 
-class GlymurAccessor:
-    def __init__(self,jp2path,shp=(4096,4096),padding=0):
+class Accessor:
+    def __init__(self,imgpath,shp=(4096,4096),padding=0):
         # print(jp2path)
         # print(os.listdir(os.path.dirname(jp2path)))
         
-        self.jp2path = jp2path
-
-        if not os.path.exists(self.jp2path):
+        self.imgpath = imgpath
+        
+        if not os.path.exists(self.imgpath):
             raise RuntimeError('file not exists')
         
-        self._jp2handle = glymur.Jp2k(self.jp2path)
-        if self._jp2handle is None :
-            raise RuntimeError('glymur handle is invalid')
-        # else:
-            # print(self._jp2handle._readonly)
-            # self._jp2handle.parse()
-            # self._jp2handle._initialize_shape()
-        self.imageshape = self._jp2handle.shape
+        if self.imgpath[-3:]=='jp2': 
+            self._handle = glymur.Jp2k(self.imgpath)
+            if self._handle is None :
+                raise RuntimeError('glymur handle is invalid')
+            # else:
+                # print(self._jp2handle._readonly)
+                # self._jp2handle.parse()
+                # self._jp2handle._initialize_shape()
+                
+        elif self.imgpath[-3:]=='tif':
+            # load whole array in RAM
+            self._handle = imread(self.imgpath)
+
+        self.imageshape = self._handle.shape
         print(self.imageshape)
         self.ntiles_c = round(self.imageshape[1]/shp[1]) # FIXME: was ceil, changing to round for compat with ui
         self.ntiles_r = round(self.imageshape[0]/shp[0]) # not actually used anywhere - only print
@@ -156,7 +157,7 @@ class GlymurAccessor:
 
             df = int(self.dec_factor)
             tic = datetime.now()
-            arr = self._jp2handle[to_slice(ext2,df)]
+            arr = self._handle[to_slice(ext2,df)]
             elapsed = datetime.now()-tic
             print(f'{os.getpid()}:{elapsed.microseconds//1000}',end=" ",flush=True)
             (mirror_top, mirror_left, mirror_bot, mirror_right) = mirrorvals
@@ -181,21 +182,21 @@ def workerfunc(accessor,tilenum):
 
 
 def create_mmap(accessor,mmapdir='/data/special/mmapcache',concurrent=False):
-    loc,bn = os.path.split(accessor.jp2path)
+    loc,bn = os.path.split(accessor.imgpath)
     namepart = ".".join(bn.split('.')[:-1])
     mmapfilename = mmapdir+'/'+namepart+'.dat'
 
     infoname = mmapfilename.replace('.dat','_info.pkl')
     assert not os.path.exists(infoname)
 
-    info = {'dtype':'uint8', 'shape':accessor.imageshape,'mmname':mmapfilename,'fname':accessor.jp2path}
+    info = {'dtype':'uint8', 'shape':accessor.imageshape,'mmname':mmapfilename,'fname':accessor.imgpath}
         
     pickle.dump(info,open(infoname,'wb'))
     handle = np.memmap(mmapfilename,dtype='uint8',mode='w+',shape=accessor.imageshape )
     
     if not concurrent:
         start = datetime.now()
-        handle[:]=accessor._jp2handle[:]
+        handle[:]=accessor._handle[:]
         loadend = datetime.now()
         handle.flush()
         flushend = datetime.now()
