@@ -1,7 +1,11 @@
 import glymur
-glymur.set_option('lib.num_threads',48)
-glymur.set_option('print.codestream',False)
-glymur.set_option('print.xml',False)
+try:
+    glymur.set_option('lib.num_threads',48)
+    glymur.set_option('print.codestream',False)
+    glymur.set_option('print.xml',False)
+except:
+    print('glymur not setup correctly')
+    
 import pickle
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
