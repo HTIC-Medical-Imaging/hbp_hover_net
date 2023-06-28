@@ -937,9 +937,9 @@ class InferManager(base.InferManager):
             wsi_base_name = pathlib.Path(wsi_path).stem
             msk_path = "%s/%s.png" % (self.input_mask_dir, wsi_base_name)
             if self.save_thumb or self.save_mask:
-                output_file = "%s/json/%s.json" % (self.output_dir, wsi_base_name)
+                output_file = "%s/json/%s._objects.json" % (self.output_dir, wsi_base_name)
             else:
-                output_file = "%s/%s.json" % (self.output_dir, wsi_base_name)
+                output_file = "%s/%s_objects.json" % (self.output_dir, wsi_base_name)
             if os.path.exists(output_file):
                 log_info("Skip: %s" % wsi_base_name)
                 continue
