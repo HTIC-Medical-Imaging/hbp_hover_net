@@ -80,7 +80,7 @@ class Accessor:
                 # print(self._jp2handle._readonly)
                 # self._jp2handle.parse()
                 # self._jp2handle._initialize_shape()
-                
+
         elif self.imgpath[-3:]=='tif':
             # load whole array in RAM
             self._handle = imread(self.imgpath)
@@ -180,19 +180,23 @@ def workerfunc(accessor,tilenum):
      arr, rgn, url = accessor[tilenum] # for __getitem__
      return arr,rgn, url, tilenum, os.getpid()
 
+def get_mmap_name(imgpath):
+    loc,bn = os.path.split(imgpath)
+    namepart = ".".join(bn.split('.')[:-1])
+    mmapfilename = namepart+'.dat'
+    infoname = mmapfilename.replace('.dat','_info.pkl')
+    return mmapfilename, infoname
 
 def create_mmap(accessor,mmapdir='/data/special/mmapcache',concurrent=False):
-    loc,bn = os.path.split(accessor.imgpath)
-    namepart = ".".join(bn.split('.')[:-1])
-    mmapfilename = mmapdir+'/'+namepart+'.dat'
+    
+    mmapfilename, infoname = get_mmap_name(accessor.imgpath)
 
-    infoname = mmapfilename.replace('.dat','_info.pkl')
     assert not os.path.exists(infoname)
 
     info = {'dtype':'uint8', 'shape':accessor.imageshape,'mmname':mmapfilename,'fname':accessor.imgpath}
         
-    pickle.dump(info,open(infoname,'wb'))
-    handle = np.memmap(mmapfilename,dtype='uint8',mode='w+',shape=accessor.imageshape )
+    pickle.dump(info,open(mmapdir+'/'+infoname,'wb'))
+    handle = np.memmap(mmapdir+'/'+mmapfilename,dtype='uint8',mode='w+',shape=accessor.imageshape )
     
     if not concurrent:
         start = datetime.now()
