@@ -16,7 +16,7 @@ if __name__=="__main__":
 
     elif use_kdu:
         start = datetime.now()
-        os.system(f'LD_LIBRARY_PATH=$PWD/lib ./kdu_expand -i {jp2path.strip()} -o /cache/tmp.tif')
+        os.system(f'LD_LIBRARY_PATH=$PWD/lib ./kdu_expand -num_threads 96 -i {jp2path.strip()} -o /cache/tmp.tif')
         loadend = datetime.now()
         accessor = TifAccessor('/cache/tmp.tif')
         create_mmap(accessor,mmapdir.strip(),concurrent=False)
