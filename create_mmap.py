@@ -16,9 +16,9 @@ if __name__=="__main__":
 
     elif use_kdu:
         start = datetime.now()
-        os.system(f'LD_LIBRARY_PATH=$PWD/lib ./kdu_expand -i {jp2path.strip()} -o ./cache/tmp.tif')
+        os.system(f'LD_LIBRARY_PATH=$PWD/lib ./kdu_expand -i {jp2path.strip()} -o /cache/tmp.tif')
         loadend = datetime.now()
-        accessor = TifAccessor('./cache/tmp.tif')
+        accessor = TifAccessor('/cache/tmp.tif')
         create_mmap(accessor,mmapdir.strip(),concurrent=False)
         flushend = datetime.now()
         loadtime = loadend - start
@@ -28,4 +28,4 @@ if __name__=="__main__":
     print('flush time', flushtime)
 
     if use_kdu:
-        os.unlink('./cache/tmp.tif')
+        os.unlink('/cache/tmp.tif')
