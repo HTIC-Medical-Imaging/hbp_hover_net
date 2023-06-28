@@ -8,4 +8,6 @@ COPY ./glymurrc /root/.config/glymur/
 
 RUN pip install -r requirements.txt
 
+RUN chmod +x /workspace/kdu_expand
+
 RUN sed -i 's/\r//' /workspace/run_wsi_mmap.sh
