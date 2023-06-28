@@ -106,17 +106,27 @@ class InferManager(object):
         return
 
     def __save_json(self, path, old_dict, mag=None):
-        new_dict = {}
+        new_dict1 = {}
+        new_dict2 = {}
         for inst_id, inst_info in old_dict.items():
-            new_inst_info = {}
+            new_inst_info1 = {}
+            new_inst_info2 = {}
             for info_name, info_value in inst_info.items():
                 # convert to jsonable
                 if isinstance(info_value, np.ndarray):
                     info_value = info_value.tolist()
-                new_inst_info[info_name] = info_value
-            new_dict[int(inst_id)] = new_inst_info
+                if "contour" in info_name:
+                    new_inst_info2[info_name] = info_value
+                else:
+                    new_inst_info1[info_name] = info_value
 
-        json_dict = {"mag": mag, "nuc": new_dict}  # to sync the format protocol
-        with open(path, "w") as handle:
-            json.dump(json_dict, handle)
-        return new_dict
+            new_dict1[int(inst_id)] = new_inst_info1
+            new_dict2[int(inst_id)] = new_inst_info2
+            
+
+        # json_dict = {"mag": mag, "nuc": new_dict1}  # to sync the format protocol
+        with open(path+'_objects.json', "w") as handle:
+            json.dump({"mag": mag, "nuc": new_dict1}, handle)
+        with open(path+'_contours.json', "w") as handle:
+            json.dump({"mag": mag, "nuc": new_dict2}, handle)    
+        return new_dict1

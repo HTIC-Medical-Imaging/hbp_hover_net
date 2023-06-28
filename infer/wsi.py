@@ -903,9 +903,9 @@ class InferManager(base.InferManager):
         # ! cant possibly save the inst map at high res, too large
         start = time.perf_counter()
         if self.save_mask or self.save_thumb:
-            json_path = "%s/json/%s.json" % (output_dir, wsi_name)
+            json_path = "%s/json/%s" % (output_dir, wsi_name)
         else:
-            json_path = "%s/%s.json" % (output_dir, wsi_name)
+            json_path = "%s/%s" % (output_dir, wsi_name)
         self.__save_json(json_path, self.wsi_inst_info, mag=self.proc_mag)
         end = time.perf_counter()
         log_info("Save Time: {0}".format(end - start))
