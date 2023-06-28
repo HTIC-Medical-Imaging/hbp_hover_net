@@ -5,7 +5,7 @@ try:
     glymur.set_option('print.xml',False)
 except:
     print('glymur not setup correctly')
-    
+
 import pickle
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
@@ -146,7 +146,7 @@ class MmapCreator:
     def __getitem__(self,tilenum):
         if tilenum < self.ntiles:
             # print('access %d' % tilenum)
-            print('.',end="",flush=True)
+            
             ext = self.get_tile_extent(tilenum)
 
             ext2, region, mirrorvals = self.get_padded_extent(ext)
@@ -154,9 +154,10 @@ class MmapCreator:
             imgurl = None
 
             df = int(self.dec_factor)
-            
+            tic = datetime.now()
             arr = self._jp2handle[to_slice(ext2,df)]
-                
+            elapsed = datetime.now()-tic
+            print(f'{os.getpid()}:{elapsed}',end="",flush=True)
             (mirror_top, mirror_left, mirror_bot, mirror_right) = mirrorvals
             if mirror_top > 0:
                 arr = np.pad(arr,[(mirror_top,0),(0,0),(0,0)],mode='reflect')
