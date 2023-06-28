@@ -109,7 +109,7 @@ if __name__ == '__main__':
     gpu_list = list(map(int,gpu_list.split(',')))
 
     nr_gpus = torch.cuda.device_count()
-    log_info('Detect #GPUS: %d' % nr_gpus)
+    
 
     args = {k.replace('--', '') : v for k, v in args.items()}
     sub_args = {k.replace('--', '') : v for k, v in sub_args.items()}
@@ -175,10 +175,12 @@ if __name__ == '__main__':
         level=logging.INFO,
         format='|%(asctime)s.%(msecs)03d| [%(levelname)s] %(message)s',datefmt='%Y-%m-%d|%H:%M:%S',
         handlers=[
-            logging.FileHandler(sub_args['output_dir']+"/debug.log"),
+            logging.FileHandler(sub_args['output_dir']+"/log.txt"),
             logging.StreamHandler()
         ]
     )    
+    log_info('Detect #GPUS: %d' % nr_gpus)
+    
     if sub_cmd == 'tile':
         from infer.tile import InferManager
         infer = InferManager(**method_args)
