@@ -25,7 +25,7 @@ import scipy.io as sio
 import torch
 import torch.utils.data as data
 import tqdm
-from dataloader.infer_loader import SerializeArray, SerializeFileList
+from dataloader.infer_loader import SerializeArray, SerializeFileList, SerializeArray2
 from docopt import docopt
 from misc.utils import (
     cropping_center,
@@ -362,6 +362,50 @@ class InferManager(base.InferManager):
         pbar.close()
         return accumulated_patch_output
     
+    def __run_model2(self, chunk_data, patch_top_left_list, pbar_desc):
+        # TODO: the cost of creating dataloader may not be cheap ?
+
+        dataset = SerializeArray2(
+            chunk_data,
+            patch_top_left_list,
+            self.patch_input_shape,
+        )
+
+
+        dataloader = data.DataLoader(
+            dataset,
+            num_workers=self.nr_inference_workers,
+            batch_size=self.batch_size,
+            drop_last=False,
+            pin_memory = True
+        )
+
+        pbar = tqdm.tqdm(
+            desc=pbar_desc,
+            leave=True,
+            total=int(len(dataloader)),
+            ncols=80,
+            ascii=True,
+            position=0,
+        )
+        # run inference on input patches
+        accumulated_patch_output = []
+        for batch_idx, batch_data in enumerate(dataloader):
+
+            
+            sample_data_list, sample_info_list = batch_data
+            sample_output_list = self.run_step(sample_data_list)
+            
+            sample_info_list = sample_info_list.numpy()
+            curr_batch_size = sample_output_list.shape[0]
+            sample_output_list = np.split(sample_output_list, curr_batch_size, axis=0)
+            sample_info_list = np.split(sample_info_list, curr_batch_size, axis=0)
+            sample_output_list = list(zip(sample_info_list, sample_output_list))
+            accumulated_patch_output.extend(sample_output_list)
+            pbar.update()
+        pbar.close()
+        return accumulated_patch_output
+        
     def __dummy_run_model(self, patch_top_left_list, pbar_desc):
         # TODO: the cost of creating dataloader may not be cheap ?
 
@@ -478,14 +522,14 @@ class InferManager(base.InferManager):
                 chunk_info[0][0][::-1], (chunk_info[0][1] - chunk_info[0][0])[::-1]
             )
             chunk_data = np.array(chunk_data)[..., :3]
-            np.save("%s/cache_chunk.npy" % self.cache_path, chunk_data)
+            # np.save("%s/cache_chunk.npy" % self.cache_path, chunk_data)
 
             pbar_desc = "Process Chunk %d/%d" % (idx, chunk_info_list.shape[0])
 #             patch_output_list = self.__run_trt_model(
 #                 chunk_patch_info_list[:, 0, 0], pbar_desc
 #             )
             try:
-                patch_output_list = self.__run_model(
+                patch_output_list = self.__run_model2(chunk_data,
                     chunk_patch_info_list[:, 0, 0], pbar_desc
                 )
             except RuntimeError as er:

@@ -98,3 +98,29 @@ class SerializeArray(data.Dataset):
         if self.preproc is not None:
             patch_data = self.preproc(patch_data)
         return patch_data, patch_info
+
+class SerializeArray2(data.Dataset):
+    def __init__(self, mmap_array, patch_info_list, patch_size, preproc=None):
+        super().__init__()
+        self.patch_size = patch_size
+
+        # use mmap as intermediate sharing, else variable will be duplicated
+        # accross torch worker => OOM error, open in read only mode
+        self.image = mmap_array
+
+        self.patch_info_list = patch_info_list
+        self.preproc = preproc
+        return
+
+    def __len__(self):
+        return len(self.patch_info_list)
+
+    def __getitem__(self, idx):
+        patch_info = self.patch_info_list[idx]
+        patch_data = self.image[
+            patch_info[0] : patch_info[0] + self.patch_size[0],
+            patch_info[1] : patch_info[1] + self.patch_size[1],
+        ]
+        if self.preproc is not None:
+            patch_data = self.preproc(patch_data)
+        return patch_data, patch_info
