@@ -15,6 +15,7 @@ from collections import namedtuple
 from multiprocessing import cpu_count
 import os
 from tqdm import tqdm
+from skimage.io import imread
 
 MultiprocPlan = namedtuple('MultiprocPlan','worksize,nworkers,perworker,rounds,minwork')
 
@@ -59,6 +60,11 @@ def to_slice(ext,step=1):
     csl = slice(int(ext.point1.x),int(ext.point2.x),step)
     return rsl,csl 
 
+class TifAccessor:
+    """read tif into RAM, simulate glymur array read"""
+    def __init__(self, tifname):
+        self._jp2handle = imread(tifname)
+        
 
 class GlymurAccessor:
     def __init__(self,jp2path,shp=(4096,4096),padding=0):
