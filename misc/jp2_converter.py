@@ -173,7 +173,7 @@ def workerfunc(accessor,tilenum):
      return arr,rgn, url, tilenum, os.getpid()
 
 
-def create_mmap(accessor,mmapdir='/data/special/mmapcache'):
+def create_mmap(accessor,mmapdir='/data/special/mmapcache',concurrent=False):
     loc,bn = os.path.split(accessor.jp2path)
     namepart = ".".join(bn.split('.')[:-1])
     mmapfilename = mmapdir+'/'+namepart+'.dat'
@@ -186,35 +186,42 @@ def create_mmap(accessor,mmapdir='/data/special/mmapcache'):
     pickle.dump(info,open(infoname,'wb'))
     handle = np.memmap(mmapfilename,dtype='uint8',mode='w+',shape=accessor.imageshape )
     
-    
-    plan = get_multiproc_plan(accessor.ntiles,minwork=10)
-    print(plan)
-    
-    # workerfunc2 = partial(workerfunc,self)
-    # data,ext,url,tilenum,pid=workerfunc(accessor,accessor.ntiles-1)
-    start=datetime.now()
-    print('load started...',end="")
-    # if True:
-    pid_tiles = {}
-    with ProcessPoolExecutor(max_workers=plan.nworkers) as executor:
-        for data,extent,url,tilenum,pid in executor.map(workerfunc,accessor,range(plan.worksize),chunksize=plan.rounds):
-        # for ii in tqdm(range(plan.worksize)):
-            # data,extent,_ = workerfunc2(ii)
-            if extent is not None:
-                rsl,csl = to_slice(extent)
-                handle[rsl,csl,:]=data
-            if pid not in pid_tiles:
-                pid_tiles[pid]=[]
-            pid_tiles[pid].append(tilenum)
+    if not concurrent:
+        start = datetime.now()
+        handle[:]=accessor._jp2handle[:]
+        loadend = datetime.now()
+        handle.flush()
+        flushend = datetime.now()
 
-    print('loaded. syncing...',end="")
-    loadend = datetime.now()
-    handle.flush()
-    flushend = datetime.now()
-    print('done')
-    for pid,tiles in pid_tiles.items():
-        print(pid,len(tiles))
-    
+    else:
+        plan = get_multiproc_plan(accessor.ntiles,minwork=10)
+        print(plan)
+        
+        # workerfunc2 = partial(workerfunc,self)
+        # data,ext,url,tilenum,pid=workerfunc(accessor,accessor.ntiles-1)
+        start=datetime.now()
+        print('load started...',end="")
+        # if True:
+        pid_tiles = {}
+        with ProcessPoolExecutor(max_workers=plan.nworkers) as executor:
+            for data,extent,url,tilenum,pid in executor.map(workerfunc,accessor,range(plan.worksize),chunksize=plan.rounds):
+            # for ii in tqdm(range(plan.worksize)):
+                # data,extent,_ = workerfunc2(ii)
+                if extent is not None:
+                    rsl,csl = to_slice(extent)
+                    handle[rsl,csl,:]=data
+                if pid not in pid_tiles:
+                    pid_tiles[pid]=[]
+                pid_tiles[pid].append(tilenum)
+
+        print('loaded. syncing...',end="")
+        loadend = datetime.now()
+        handle.flush()
+        flushend = datetime.now()
+        print('done')
+        for pid,tiles in pid_tiles.items():
+            print(pid,len(tiles))
+        
     return loadend-start,flushend-loadend # loadtime, flushtime
 
 def workerfortest(tilenum):
