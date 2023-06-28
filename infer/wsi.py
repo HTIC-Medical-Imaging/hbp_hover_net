@@ -333,7 +333,7 @@ class InferManager(base.InferManager):
             num_workers=self.nr_inference_workers,
             batch_size=self.batch_size,
             drop_last=False,
-#             pin_memory = True
+            pin_memory = True
         )
 
         pbar = tqdm.tqdm(
