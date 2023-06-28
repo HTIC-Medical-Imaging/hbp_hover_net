@@ -529,6 +529,7 @@ class InferManager(base.InferManager):
 #                 chunk_patch_info_list[:, 0, 0], pbar_desc
 #             )
             try:
+                print('calling run_model2',chunk_data.shape)
                 patch_output_list = self.__run_model2(chunk_data,
                     chunk_patch_info_list[:, 0, 0], pbar_desc
                 )
