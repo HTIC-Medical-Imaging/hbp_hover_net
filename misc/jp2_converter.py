@@ -63,6 +63,7 @@ def to_slice(ext,step=1):
 class TifAccessor:
     """read tif into RAM, simulate glymur array read"""
     def __init__(self, tifname):
+        self.jp2path = tifname
         self._jp2handle = imread(tifname)
         
 
