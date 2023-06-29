@@ -129,7 +129,7 @@ def process(pred_map, nr_types=None, return_centroids=False):
                 inst_bbox[0][0] : inst_bbox[1][0], inst_bbox[0][1] : inst_bbox[1][1]
             ]
             inst_map = inst_map.astype(np.uint8)
-            inst_moment = cv2.moments(inst_map)
+            
             inst_contour = cv2.findContours(
                 inst_map, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
             )
@@ -141,6 +141,7 @@ def process(pred_map, nr_types=None, return_centroids=False):
                 continue
             if len(inst_contour.shape) != 2:
                 continue # ! check for trickery shape
+            inst_moment = cv2.moments(inst_contour)
             inst_centroid = [
                 (inst_moment["m10"] / inst_moment["m00"]),
                 (inst_moment["m01"] / inst_moment["m00"]),
@@ -148,8 +149,8 @@ def process(pred_map, nr_types=None, return_centroids=False):
             inst_centroid = np.array(inst_centroid)
             inst_contour[:, 0] += inst_bbox[0][1]  # X
             inst_contour[:, 1] += inst_bbox[0][0]  # Y
-            inst_centroid[0] += inst_bbox[0][1]  # X
-            inst_centroid[1] += inst_bbox[0][0]  # Y
+            # inst_centroid[0] += inst_bbox[0][1]  # X
+            # inst_centroid[1] += inst_bbox[0][0]  # Y
             inst_info_dict[inst_id] = {  # inst_id should start at 1
                 "bbox": inst_bbox,
                 "centroid": inst_centroid,
