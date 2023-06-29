@@ -870,7 +870,7 @@ class InferManager(base.InferManager):
                 # now correct the coordinate wrt to wsi
                 inst_info["bbox"] += top_left
                 inst_info["contour"] += top_left
-                inst_info["centroid"] += top_left
+                # inst_info["centroid"] += top_left
                 self.wsi_inst_info[inst_id + wsi_max_id] = inst_info
             pred_inst[pred_inst > 0] += wsi_max_id
             pred_inst = roi_inst + pred_inst

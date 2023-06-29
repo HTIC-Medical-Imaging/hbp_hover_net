@@ -142,7 +142,7 @@ def process(pred_map, nr_types=None, return_centroids=False):
                 continue
             if len(inst_contour.shape) != 2:
                 continue # ! check for trickery shape
-            inst_moment = cv2.moments(inst_contour)
+            inst_moment = cv2.moments(inst_map)
             inst_centroid = [
                 (inst_moment["m10"] / inst_moment["m00"]),
                 (inst_moment["m01"] / inst_moment["m00"]),
