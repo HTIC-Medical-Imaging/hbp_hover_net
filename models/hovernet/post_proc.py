@@ -163,7 +163,7 @@ def process(pred_map, nr_types=None, return_centroids=False):
     if nr_types is not None:
         #### * Get class of each instance id, stored at index id-1
         for inst_id in list(inst_info_dict.keys()):
-            rmin, cmin, rmax, cmax = (inst_info_dict[inst_id]["bbox"]).flatten()
+            cmin, rmin, cmax, rmax = (inst_info_dict[inst_id]["bbox"]).flatten()
             inst_map_crop = pred_inst[rmin:rmax, cmin:cmax]
             inst_type_crop = pred_type[rmin:rmax, cmin:cmax]
             inst_map_crop = (
