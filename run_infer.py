@@ -69,6 +69,7 @@ options:
     --tile_shape=<n>        Shape of tiles for processing. [default: 2048]
     --save_thumb            To save thumb. [default: False]
     --save_mask             To save mask. [default: False]
+    --debug                 Debug - run only one chunk [default: False]
 """
 
 import torch
@@ -169,6 +170,7 @@ if __name__ == '__main__':
             'tile_shape'     : int(sub_args['tile_shape']),
             'save_thumb'     : sub_args['save_thumb'],
             'save_mask'      : sub_args['save_mask'],
+            'debug'          : sub_args['debug'],
         })
     # ***
     logging.basicConfig(
@@ -180,7 +182,7 @@ if __name__ == '__main__':
         ]
     )    
     log_info('Detect #GPUS: %d' % nr_gpus)
-    
+
     if sub_cmd == 'tile':
         from infer.tile import InferManager
         infer = InferManager(**method_args)

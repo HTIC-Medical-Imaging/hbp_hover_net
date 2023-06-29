@@ -525,9 +525,9 @@ class InferManager(base.InferManager):
             # np.save("%s/cache_chunk.npy" % self.cache_path, chunk_data)
 
             pbar_desc = "Process Chunk %d/%d" % (idx, chunk_info_list.shape[0])
-#             patch_output_list = self.__run_trt_model(
-#                 chunk_patch_info_list[:, 0, 0], pbar_desc
-#             )
+            # patch_output_list = self.__run_trt_model(
+            #     chunk_patch_info_list[:, 0, 0], pbar_desc
+            # )
             try:
                 print('calling run_model2',chunk_data.shape)
                 patch_output_list = self.__run_model2(chunk_data,
@@ -537,14 +537,17 @@ class InferManager(base.InferManager):
                 print(er)
                 continue
 
-#             patch_output_list = self.__dummy_run_model(
-#                 chunk_patch_info_list[:, 0, 0], pbar_desc
-#             )   
+            # patch_output_list = self.__dummy_run_model(
+            #     chunk_patch_info_list[:, 0, 0], pbar_desc
+            # )   
 
             proc_pool.apply_async(
                 _assemble_and_flush,
                 args=(wsi_pred_map_mmap_path, chunk_info, patch_output_list),
             )
+            if self.debug:
+                break # run only one chunk
+
         proc_pool.close()
         proc_pool.join()
         return
@@ -790,7 +793,7 @@ class InferManager(base.InferManager):
                 # now correct the coordinate wrt to wsi
                 inst_info["bbox"] += top_left
                 inst_info["contour"] += top_left
-                inst_info["centroid"] += top_left
+                # inst_info["centroid"] += top_left # keep local within bbox
                 self.wsi_inst_info[inst_id + wsi_max_id] = inst_info
             pred_inst[pred_inst > 0] += wsi_max_id
             self.wsi_inst_map[

@@ -124,10 +124,11 @@ def process(pred_map, nr_types=None, return_centroids=False):
             inst_map = pred_inst == inst_id
             # TODO: chane format of bbox output
             rmin, rmax, cmin, cmax = get_bounding_box(inst_map)
-            inst_bbox = np.array([[rmin, cmin], [rmax, cmax]])
-            inst_map = inst_map[
-                inst_bbox[0][0] : inst_bbox[1][0], inst_bbox[0][1] : inst_bbox[1][1]
-            ]
+            # inst_bbox = np.array([[rmin, cmin], [rmax, cmax]])            
+            # inst_map = inst_map[
+            #     inst_bbox[0][0] : inst_bbox[1][0], inst_bbox[0][1] : inst_bbox[1][1]
+            # ]
+            inst_map = inst_map[rmin:rmax,cmin:cmax]
             inst_map = inst_map.astype(np.uint8)
             
             inst_contour = cv2.findContours(
@@ -147,13 +148,13 @@ def process(pred_map, nr_types=None, return_centroids=False):
                 (inst_moment["m01"] / inst_moment["m00"]),
             ]
             inst_centroid = np.array(inst_centroid)
-            inst_contour[:, 0] += inst_bbox[0][1]  # X
-            inst_contour[:, 1] += inst_bbox[0][0]  # Y
+            inst_contour[:, 0] += cmin # inst_bbox[0][1]  # X
+            inst_contour[:, 1] += rmin # inst_bbox[0][0]  # Y
             # inst_centroid[0] += inst_bbox[0][1]  # X
             # inst_centroid[1] += inst_bbox[0][0]  # Y
             inst_info_dict[inst_id] = {  # inst_id should start at 1
-                "bbox": inst_bbox,
-                "centroid": inst_centroid,
+                "bbox": np.array([[cmin,rmin],[cmax,rmax]]),
+                "centroid": inst_centroid, # local within bbox
                 "contour": inst_contour,
                 "type_prob": None,
                 "type": None,
