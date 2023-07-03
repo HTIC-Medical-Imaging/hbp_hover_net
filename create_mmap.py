@@ -17,15 +17,17 @@ if __name__=="__main__":
 
         elif use_kdu:
             start = datetime.now()
-            os.system(f'LD_LIBRARY_PATH=$PWD/lib ./kdu_expand -num_threads 64 -i {jp2path} -o /cache/tmp.tif')
+            basenm = os.path.basename(jp2path)
+            tmpoutname = '/cache/'+basenm[:-4]+'.tif'
+            os.system(f'LD_LIBRARY_PATH=$PWD/lib ./kdu_expand -num_threads 64 -i {jp2path} -o {tmpoutname}')
             loadend = datetime.now()
-            accessor = Accessor('/cache/tmp.tif')
+            accessor = Accessor(tmpoutname)
             accessor.imgpath = jp2path # to set nameprefix of _info.pkl
             create_mmap(accessor, mmapdir, concurrent=False)
             flushend = datetime.now()
             loadtime = loadend - start
             flushtime = flushend - loadend
-            os.unlink('/cache/tmp.tif')
+            os.unlink(tmpoutname)
         
         print('load time', loadtime)
         print('flush time', flushtime)
