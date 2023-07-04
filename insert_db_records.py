@@ -2,6 +2,7 @@ import pandas as pd
 import psycopg2
 import sys
 import os
+from tqdm import tqdm
 
 if __name__=="__main__":
     bsid = sys.argv[1]
@@ -26,7 +27,7 @@ if __name__=="__main__":
 
     with conn.cursor() as cursor:
 
-        for ii,rec in records.iterrows():
+        for ii,rec in tqdm(records.iterrows()):
             bbox_tl = rec.bbox_cmin,rec.bbox_rmin
             bbox_br = rec.bbox_cmax,rec.bbox_rmax
             cx = rec.cen_c+bbox_tl[0]
