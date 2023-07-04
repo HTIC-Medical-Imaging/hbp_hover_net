@@ -545,8 +545,8 @@ class InferManager(base.InferManager):
                 _assemble_and_flush,
                 args=(wsi_pred_map_mmap_path, chunk_info, patch_output_list),
             )
-            if self.debug:
-                break # run only one chunk
+            if self.debug and idx > 4:
+                break # run only 5 chunks
 
         proc_pool.close()
         proc_pool.join()
