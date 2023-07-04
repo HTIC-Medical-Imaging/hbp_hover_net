@@ -43,7 +43,7 @@ if __name__=="__main__":
 
         cursor.execute(f'create table nissl_detections_{dt} (section int, centroid POINT, tl POINT, br POINT, celltypeid int, celltypeprob float)')
         
-        cursor.execute('create table if not exists summary (name varchar(20), algorithm varchar(50), version varchar(10), inputarg text)')
+        cursor.execute('create table if not exists summary (name varchar(40), algorithm varchar(50), version varchar(10), inputarg text)')
         cursor.execute(f"insert into summary (name, algorithm, version, inputarg) values ('nissl_detections_{dt}','{algo}','{ver}','{inputarg}')")
         
 
