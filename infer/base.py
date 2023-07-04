@@ -119,9 +119,18 @@ class InferManager(object):
                 if "contour" in info_name:
                     new_inst_info2[info_name] = info_value
                 else:
+                    if "bbox" in info_name:
+                        new_inst_info1['bbox_cmin']=info_value[0][0]
+                        new_inst_info1['bbox_rmin']=info_value[0][1]
+                        new_inst_info1['bbox_cmax']=info_value[1][0]
+                        new_inst_info1['bbox_rmax']=info_value[1][1]
+                    if "centroid" in info_name:
+                        new_inst_info1['cen_c']=info_value[0]
+                        new_inst_info1['cen_r']=info_value[1]
                     if "prob" in info_name:
                         info_value = np.round(info_value,3)
-                    new_inst_info1[info_name] = info_value
+                    if info_name not in ("bbox","centroid"):
+                        new_inst_info1[info_name] = info_value
             
             new_records.append(new_inst_info1)
             new_dict2[int(inst_id)] = new_inst_info2
