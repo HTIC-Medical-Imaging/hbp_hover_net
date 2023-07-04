@@ -2,12 +2,16 @@
 import psycopg2 
 import sys
 import os
+from datetime import datetime
 
 if __name__=="__main__":
     
-    ssid = 'ss37'
-    if len(sys.argv)>1:
-        ssid = sys.argv[1]
+    bsid = sys.argv[1]  # e.g. ss37
+    sec = sys.argv[2]
+    algo = sys.argv[3] # e.g. hover_net
+    ver = sys.argv[4]   # e.g. v1
+    inputarg = sys.argv[5] # jp2path
+    dt = sys.argv[6]
 
     dbuser=os.getenv('POSTGRES_USERNAME','postgres')
     dbpass=os.getenv('POSTGRES_PASSWORD','admin123')
@@ -18,7 +22,7 @@ if __name__=="__main__":
     
     conn.autocommit=True
     
-    dbname = ssid
+    dbname = bsid
     
     with conn.cursor() as cursor:
         try:
@@ -30,14 +34,18 @@ if __name__=="__main__":
     
     conn=psycopg2.connect(database=dbname,user=dbuser,password=dbpass,host=dbhost,port=int(dbport))
     
+    # dt = datetime.now().strftime('%y%h%d_%H%M')
+    
     with conn.cursor() as cursor:
 
         cursor.execute('CREATE EXTENSION IF NOT EXISTS plpgsql')
         cursor.execute('CREATE EXTENSION postgis')
 
-        cursor.execute('create table nissl_detections (section int, centroid POINT, tl POINT, br POINT, celltypeid int, celltypeprob float)')
+        cursor.execute(f'create table nissl_detections_{dt} (section int, centroid POINT, tl POINT, br POINT, celltypeid int, celltypeprob float)')
         
-        # cursor.execute('insert into nissl_detections (section,centroid, tl, br, celltypeid, celltypeprob)values(1078, ST_MakePoint(100,-80)::point, ST_MakePoint(90,-90)::point, ST_MakePoint(110,-70)::point, 3, 0.718)')
+        cursor.execute('create table if not exists summary (name varchar(20), algorithm varchar(50), version varchar(10), inputarg text)')
+        cursor.execute(f"insert into summary (name, algorithm, version, inputarg) values ('nissl_detections_{dt}','{algo}','{ver}','{inputarg}')")
+        
 
     conn.commit()
     conn.close()
