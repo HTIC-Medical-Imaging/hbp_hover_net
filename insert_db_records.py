@@ -22,7 +22,7 @@ if __name__=="__main__":
     dbhost=os.getenv('POSTGRES_HOST','172.17.0.1')
     dbport=os.getenv('POSTGRES_PORT','5432')
 
-    conn=psycopg2.connect(database=bsid,user=dbuser,password=dbpass,host=dbhost,port=int(dbport))
+    conn=psycopg2.connect(dbname=bsid,user=dbuser,password=dbpass,host=dbhost,port=int(dbport))
 
     with conn.cursor() as cursor:
 

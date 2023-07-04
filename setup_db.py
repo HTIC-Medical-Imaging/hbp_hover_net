@@ -18,7 +18,7 @@ if __name__=="__main__":
     dbhost=os.getenv('POSTGRES_HOST','172.17.0.1')
     dbport=os.getenv('POSTGRES_PORT','5432')
     
-    conn=psycopg2.connect(database='postgres',user=dbuser,password=dbpass,host=dbhost,port=int(dbport))
+    conn=psycopg2.connect(dbname='postgres',user=dbuser,password=dbpass,host=dbhost,port=int(dbport))
     
     conn.autocommit=True
     
@@ -32,7 +32,7 @@ if __name__=="__main__":
 
     conn.close()
     
-    conn=psycopg2.connect(database=dbname,user=dbuser,password=dbpass,host=dbhost,port=int(dbport))
+    conn=psycopg2.connect(dbname=dbname,user=dbuser,password=dbpass,host=dbhost,port=int(dbport))
     
     # dt = datetime.now().strftime('%y%h%d_%H%M')
     
