@@ -39,7 +39,7 @@ if __name__=="__main__":
     with conn.cursor() as cursor:
 
         cursor.execute('CREATE EXTENSION IF NOT EXISTS plpgsql')
-        cursor.execute('CREATE EXTENSION postgis')
+        cursor.execute('CREATE EXTENSION IF NOT EXISTS postgis')
 
         cursor.execute(f'create table nissl_detections_{dt} (section int, centroid POINT, tl POINT, br POINT, celltypeid int, celltypeprob float)')
         
