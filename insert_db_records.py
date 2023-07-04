@@ -19,7 +19,7 @@ if __name__=="__main__":
 
     dbuser=os.getenv('POSTGRES_USERNAME','postgres')
     dbpass=os.getenv('POSTGRES_PASSWORD','admin123')
-    dbhost=os.getenv('POSTGRES_HOST','127.0.0.1')
+    dbhost=os.getenv('POSTGRES_HOST','172.17.0.1')
     dbport=os.getenv('POSTGRES_PORT','5432')
 
     conn=psycopg2.connect(database=bsid,user=dbuser,password=dbpass,host=dbhost,port=int(dbport))
