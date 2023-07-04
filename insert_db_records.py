@@ -29,8 +29,8 @@ if __name__=="__main__":
         for ii,rec in records.iterrows():
             bbox_tl = rec.bbox_cmin,rec.bbox_rmin
             bbox_br = rec.bbox_cmax,rec.bbox_rmax
-            cx = rec.cen_x+bbox_tl[0]
-            cy = rec.cen_y+bbox_tl[1]
+            cx = rec.cen_c+bbox_tl[0]
+            cy = rec.cen_r+bbox_tl[1]
             cursor.execute(f'insert into nissl_detections_{dt} (section, centroid, tl, br, celltypeid, celltypeprob) values ({secno}, ST_MakePoint({cx},{cy})::point, ST_MakePoint({bbox_tl[0]},{bbox_tl[1]})::point, ST_MakePoint({bbox_br[0]},{bbox_br[1]})::point, {rec.type}, {rec.type_prob})')
             if ii%10==0:
                 conn.commit()
