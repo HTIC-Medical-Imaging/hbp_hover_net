@@ -10,7 +10,7 @@ if __name__=="__main__":
     csvprefix = sys.argv[4]
     dt = sys.argv[5]
 
-    csvpath = csvdir+'/json/'+csvprefix[:-3]+'_objects.csv'
+    csvpath = csvdir+'/json/'+csvprefix[:-4]+'_objects.csv'
     namepart = csvpath.split('_')[-3]
 
     assert secno in namepart, 'check secno argument (%s) expecting %s' % (secno, namepart)
