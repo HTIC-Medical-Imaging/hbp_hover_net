@@ -8,6 +8,7 @@ import re
 import sys
 from importlib import import_module
 from multiprocessing import Lock, Pool
+import pandas as pd
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -106,10 +107,10 @@ class InferManager(object):
         return
 
     def __save_json(self, path, old_dict, mag=None):
-        new_dict1 = {}
+        new_records = []
         new_dict2 = {}
         for inst_id, inst_info in old_dict.items():
-            new_inst_info1 = {}
+            new_inst_info1 = {"id":int(inst_id)}            
             new_inst_info2 = {}
             for info_name, info_value in inst_info.items():
                 # convert to jsonable
@@ -121,14 +122,15 @@ class InferManager(object):
                     if "prob" in info_name:
                         info_value = np.round(info_value,3)
                     new_inst_info1[info_name] = info_value
-
-            new_dict1[int(inst_id)] = new_inst_info1
+            
+            new_records.append(new_inst_info1)
             new_dict2[int(inst_id)] = new_inst_info2
             
 
         # json_dict = {"mag": mag, "nuc": new_dict1}  # to sync the format protocol
-        with open(path+'_objects.json', "w") as handle:
-            json.dump({"mag": mag, "nuc": new_dict1}, handle)
+        # with open(path+'_objects.json', "w") as handle:
+        #     json.dump({"mag": mag, "nuc": new_dict1}, handle)
+        pd.DataFrame(new_records).to_csv(path+'_objects.csv',index=False)
         with open(path+'_contours.json', "w") as handle:
             json.dump({"mag": mag, "nuc": new_dict2}, handle)    
-        return new_dict1
+        return new_records
