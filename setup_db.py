@@ -22,7 +22,7 @@ if __name__=="__main__":
     
     conn.autocommit=True
     
-    dbname = bsid
+    dbname = bsid.lower()
     
     with conn.cursor() as cursor:
         try:
