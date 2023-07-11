@@ -18,6 +18,7 @@ from glob import glob
 
 import torch
 import torch.distributed as dist
+from reader import MmapReader
 
 from monai.apps.pathology.inferers import SlidingWindowHoVerNetInferer
 from monai.apps.pathology.transforms import (
@@ -38,7 +39,6 @@ from monai.transforms import (
     ScaleIntensityRanged,
 )
 from monai.utils import HoVerNetBranch, first
-from monai_infer.reader import MmapReader
 
 def create_output_dir(cfg):
     output_dir = cfg["output"]
@@ -55,7 +55,7 @@ def run(cfg):
     output_dir = create_output_dir(cfg)
     multi_gpu = cfg["use_gpu"] if torch.cuda.device_count() > 1 else False
     if multi_gpu:
-        dist.init_process_group(backend="nccl", init_method="env://")
+        dist.init_process_group(backend="nccl", world_size=8, rank=2,store='file:///data/eval/ncclstore')
         device = torch.device("cuda:{}".format(dist.get_rank()))
         torch.cuda.set_device(device)
         if dist.get_rank() == 0:
