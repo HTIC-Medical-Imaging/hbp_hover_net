@@ -38,7 +38,7 @@ from monai.transforms import (
     ScaleIntensityRanged,
 )
 from monai.utils import HoVerNetBranch, first
-from monai_infer.reader import MmapReader
+from .reader import MmapReader
 
 def create_output_dir(cfg):
     output_dir = cfg["output"]
@@ -191,7 +191,7 @@ def main():
         default="/data/special/jp2cache/",
         help="Images root dir",
     )
-    parser.add_argument("--output", type=str, default="./eval/", dest="output", help="log directory")
+    parser.add_argument("--output", type=str, default="/data/eval/", dest="output", help="log directory")
     parser.add_argument(
         "--ckpt",
         type=str,
