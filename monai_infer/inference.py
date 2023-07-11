@@ -55,7 +55,7 @@ def run(cfg):
     output_dir = create_output_dir(cfg)
     multi_gpu = cfg["use_gpu"] if torch.cuda.device_count() > 1 else False
     if multi_gpu:
-        dist.init_process_group(backend="nccl", world_size=8, rank=2,init_method='file:///data/eval/ncclstore')
+        dist.init_process_group(backend="nccl", world_size=1, rank=1,init_method='file:///data/eval/ncclstore')
         device = torch.device("cuda:{}".format(dist.get_rank()))
         torch.cuda.set_device(device)
         if dist.get_rank() == 0:
@@ -88,7 +88,7 @@ def run(cfg):
             SaveImaged(
                 keys="instance_map",
                 meta_keys="image_meta_dict",
-                output_ext=".nii.gz",
+                output_ext=".npy",
                 output_dir=output_dir,
                 output_postfix="instance_map",
                 output_dtype="uint32",
@@ -97,7 +97,7 @@ def run(cfg):
             SaveImaged(
                 keys="type_map",
                 meta_keys="image_meta_dict",
-                output_ext=".nii.gz",
+                output_ext=".npy",
                 output_dir=output_dir,
                 output_postfix="type_map",
                 output_dtype="uint8",
