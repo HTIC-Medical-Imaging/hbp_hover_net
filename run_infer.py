@@ -51,7 +51,7 @@ wsi_cli = """
 Arguments for processing wsi
 
 usage:
-    wsi (--input_dir=<path>) (--output_dir=<path>) [--proc_mag=<n>]\
+    wsi (--input_dir=<path>) (--output_dir=<path>) [--basename=<path>] [--proc_mag=<n>]\
         [--cache_path=<path>] [--input_mask_dir=<path>] \
         [--ambiguous_size=<n>] [--chunk_shape=<n>] [--tile_shape=<n>] \
         [--save_thumb] [--save_mask] [--debug]
@@ -59,6 +59,7 @@ usage:
 options:
     --input_dir=<path>      Path to input data directory. Assumes the files are not nested within directory.
     --output_dir=<path>     Path to output directory.
+    --basename=<path>       basename of single wsi [default: ''] 
     --cache_path=<path>     Path for cache. Should be placed on SSD with at least 100GB. [default: cache]
     --mask_dir=<path>       Path to directory containing tissue masks. 
                             Should have the same name as corresponding WSIs. [default: '']
@@ -163,6 +164,7 @@ if __name__ == '__main__':
             'output_dir'     : sub_args['output_dir'],
             'input_mask_dir' : sub_args['input_mask_dir'],
             'cache_path'     : sub_args['cache_path'],
+            'basename'       : sub_args['basename'],
 
             'proc_mag'       : int(sub_args['proc_mag']),
             'ambiguous_size' : int(sub_args['ambiguous_size']),

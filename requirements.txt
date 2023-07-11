@@ -16,3 +16,4 @@ scikit-image==0.19.3
 termcolor==1.1.0
 # tqdm==4.48.0
 psycopg2-binary==2.9.6
+cucim
