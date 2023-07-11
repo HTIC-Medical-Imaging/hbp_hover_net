@@ -43,7 +43,8 @@ class MmapReader(ImageReader):
 
         for iarr in ensure_tuple(imgarrays):
             header = {}
-            header[MetaKeys.SPATIAL_SHAPE]=np.asarray(iarr.shape)
+            header[MetaKeys.SPATIAL_SHAPE]=np.asarray(iarr.shape[:2])
+            header[MetaKeys.ORIGINAL_CHANNEL_DIM]= -1 if len(iarr.shape)>2 else float('nan')
             img_array.append(iarr)
             _copy_compatible_dict(header,compatible_meta)
         
