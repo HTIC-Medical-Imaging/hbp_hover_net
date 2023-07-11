@@ -38,7 +38,7 @@ from monai.transforms import (
     ScaleIntensityRanged,
 )
 from monai.utils import HoVerNetBranch, first
-from .reader import MmapReader
+from monai_infer.reader import MmapReader
 
 def create_output_dir(cfg):
     output_dir = cfg["output"]
