@@ -23,7 +23,7 @@ class MmapReader(ImageReader):
         # data: file name or list of filenames
         img_ = []
         filenames = ensure_tuple(data)
-        kwargs_ = self.kwargs()
+        kwargs_ = self.kwargs.copy()
         kwargs_.update(kwargs)
 
         for name in filenames:

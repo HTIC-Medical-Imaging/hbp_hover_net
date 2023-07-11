@@ -25,7 +25,7 @@ from monai.apps.pathology.transforms import (
     HoVerNetInstanceMapPostProcessingd,
     HoVerNetNuclearTypePostProcessingd,
 )
-from monai.data import DataLoader, Dataset, PILReader, partition_dataset
+from monai.data import DataLoader, Dataset, PILReader, partition_dataset,ITKWriter
 from monai.engines import SupervisedEvaluator
 from monai.networks.nets import HoVerNet
 from monai.transforms import (
@@ -55,7 +55,8 @@ def run(cfg):
     output_dir = create_output_dir(cfg)
     multi_gpu = cfg["use_gpu"] if torch.cuda.device_count() > 1 else False
     if multi_gpu:
-        dist.init_process_group(backend="nccl", world_size=1, rank=1,init_method='file:///data/eval/ncclstore')
+        dist.init_process_group(backend="nccl", world_size=1, rank=0,init_method='file:///data/eval/ncclstore')
+        # learn here https://leimao.github.io/blog/PyTorch-Distributed-Evaluation/
         device = torch.device("cuda:{}".format(dist.get_rank()))
         torch.cuda.set_device(device)
         if dist.get_rank() == 0:
@@ -88,16 +89,17 @@ def run(cfg):
             SaveImaged(
                 keys="instance_map",
                 meta_keys="image_meta_dict",
-                output_ext=".npy",
+                output_ext=".nii",
                 output_dir=output_dir,
                 output_postfix="instance_map",
                 output_dtype="uint32",
+                writer=ITKWriter,
                 separate_folder=False,
             ),
             SaveImaged(
                 keys="type_map",
                 meta_keys="image_meta_dict",
-                output_ext=".npy",
+                output_ext=".png",
                 output_dir=output_dir,
                 output_postfix="type_map",
                 output_dtype="uint8",
