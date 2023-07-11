@@ -38,7 +38,7 @@ from monai.transforms import (
     ScaleIntensityRanged,
 )
 from monai.utils import HoVerNetBranch, first
-
+from monai_infer.reader import MmapReader
 
 def create_output_dir(cfg):
     output_dir = cfg["output"]
@@ -68,7 +68,7 @@ def run(cfg):
     # Preprocessing transforms
     pre_transforms = Compose(
         [
-            LoadImaged(keys="image", reader=PILReader, converter=lambda x: x.convert("RGB")),
+            LoadImaged(keys="image", reader=MmapReader, converter=lambda x: x.convert("RGB")),
             EnsureChannelFirstd(keys="image"),
             CastToTyped(keys="image", dtype=torch.float32),
             ScaleIntensityRanged(keys="image", a_min=0.0, a_max=255.0, b_min=0.0, b_max=1.0, clip=True),
@@ -109,7 +109,7 @@ def run(cfg):
     # Data and Data Loading
     # --------------------------------------------------------------------------
     # List of whole slide images
-    data_list = [{"image": image} for image in glob(os.path.join(cfg["root"], "*.png"))]
+    data_list = [{"image": image} for image in glob(os.path.join(cfg["root"], "*.dat"))]
 
     if multi_gpu:
         data = partition_dataset(data=data_list, num_partitions=dist.get_world_size())[dist.get_rank()]
@@ -145,7 +145,7 @@ def run(cfg):
         in_channels=3,
         out_classes=cfg["out_classes"],
     ).to(device)
-    model.load_state_dict(torch.load(cfg["ckpt"], map_location=device)["model"])
+    model.load_state_dict(torch.load(cfg["ckpt"], map_location=device)["desc"])
     model.eval()
     if multi_gpu:
         model = torch.nn.parallel.DistributedDataParallel(
@@ -184,22 +184,22 @@ def run(cfg):
 def main():
     logging.basicConfig(level=logging.INFO)
 
-    parser = ArgumentParser(description="Tumor detection on whole slide pathology images.")
+    parser = ArgumentParser(description="Nuclei detection on whole slide pathology images.")
     parser.add_argument(
         "--root",
         type=str,
-        default="/workspace/Data/CoNSeP/Test/Images",
+        default="/data/special/jp2cache/",
         help="Images root dir",
     )
     parser.add_argument("--output", type=str, default="./eval/", dest="output", help="log directory")
     parser.add_argument(
         "--ckpt",
         type=str,
-        default="./logs/model.pt",
+        default="./weights/hovernet_fast_pannuke_type_tf2pytorch.tar",
         help="Path to the pytorch checkpoint",
     )
     parser.add_argument("--mode", type=str, default="fast", help="HoVerNet mode (original/fast)")
-    parser.add_argument("--out-classes", type=int, default=5, help="number of output classes")
+    parser.add_argument("--out-classes", type=int, default=6, help="number of output classes")
     parser.add_argument("--bs", type=int, default=1, dest="batch_size", help="batch size")
     parser.add_argument("--swbs", type=int, default=8, dest="sw_batch_size", help="sliding window batch size")
     parser.add_argument("--no-amp", action="store_false", dest="use_amp", help="deactivate use of amp")
