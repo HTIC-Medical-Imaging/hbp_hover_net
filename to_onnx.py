@@ -19,16 +19,19 @@ if __name__=="__main__":
     basename = os.path.basename(mdlpath)
     prefix=pathlib.Path(basename).stem
 
-    mdlclass = 'monai.networks.nets.HoVerNet'
+    modulename = 'monai.networks.nets'
+    clsname = 'HoVerNet'
+
     mdlargs = {
         'mode':'fast',
         'in_channels':3,
         'out_classes':5,
     }
-    mod = import_module(mdlclass)
     
-    obj = mod(**mdlargs)
-        
+    mod = import_module(modulename)
+    cls = getattr(mod,clsname)
+    obj = cls(**mdlargs)
+    
     torch.onnx.export(obj,dummy_batch,outdir+'/'+prefix+'_fp32.onnx',verbose=False)
     torch.onnx.export(obj,dummy_batch_u8,outdir+'/'+prefix+'_u8.onnx',verbose=False)
 
