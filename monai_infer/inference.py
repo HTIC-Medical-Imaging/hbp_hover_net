@@ -115,7 +115,7 @@ def run(cfg):
     # List of whole slide images
     data_list = [{"image": image} for image in glob(os.path.join(cfg["root"], "*.dat"))]
 
-    if multi_gpu:
+    if multi_gpu and cfg['use_ddp']:
         data = partition_dataset(data=data_list, num_partitions=dist.get_world_size())[dist.get_rank()]
     else:
         data = data_list
