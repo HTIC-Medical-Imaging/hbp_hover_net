@@ -40,6 +40,8 @@ from monai.transforms import (
 )
 from monai.utils import HoVerNetBranch, first
 
+import datetime
+
 def create_output_dir(cfg):
     output_dir = cfg["output"]
     print(f"Outputs are saved at '{output_dir}'.")
@@ -55,7 +57,7 @@ def run(cfg):
     output_dir = create_output_dir(cfg)
     multi_gpu = cfg["use_gpu"] if torch.cuda.device_count() > 1 else False
     if multi_gpu:
-        dist.init_process_group(backend="nccl", world_size=1, rank=0,init_method='file:///data/eval/ncclstore')
+        dist.init_process_group(backend="nccl", world_size=1, rank=0, store=dist.HashStore(), timeout=datetime.timedelta(seconds=20)) #init_method='file:///data/eval/ncclstore')
         # learn here https://leimao.github.io/blog/PyTorch-Distributed-Evaluation/
         device = torch.device("cuda:{}".format(dist.get_rank()))
         torch.cuda.set_device(device)
@@ -147,7 +149,7 @@ def run(cfg):
         in_channels=3,
         out_classes=cfg["out_classes"],
     ).to(device)
-    model.load_state_dict(torch.load(cfg["ckpt"], map_location=device)["desc"])
+    model.load_state_dict(torch.load(cfg["ckpt"], map_location=device)) #["desc"])
     model.eval()
     if multi_gpu:
         model = torch.nn.parallel.DistributedDataParallel(
@@ -197,11 +199,11 @@ def main():
     parser.add_argument(
         "--ckpt",
         type=str,
-        default="./weights/hovernet_fast_pannuke_type_tf2pytorch.tar",
+        default="./weights/monai_zoo/pathology_nuclei_segmentation_classification/models/model.pt",
         help="Path to the pytorch checkpoint",
     )
     parser.add_argument("--mode", type=str, default="fast", help="HoVerNet mode (original/fast)")
-    parser.add_argument("--out-classes", type=int, default=6, help="number of output classes")
+    parser.add_argument("--out-classes", type=int, default=5, help="number of output classes")
     parser.add_argument("--bs", type=int, default=1, dest="batch_size", help="batch size")
     parser.add_argument("--swbs", type=int, default=8, dest="sw_batch_size", help="sliding window batch size")
     parser.add_argument("--no-amp", action="store_false", dest="use_amp", help="deactivate use of amp")
