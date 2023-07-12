@@ -56,7 +56,7 @@ def run(cfg):
     # --------------------------------------------------------------------------
     output_dir = create_output_dir(cfg)
     multi_gpu = cfg["use_gpu"] if torch.cuda.device_count() > 1 else False
-    if multi_gpu:
+    if multi_gpu and cfg["use_ddp"]:
         dist.init_process_group(backend="nccl", world_size=1, rank=0, store=dist.HashStore(), timeout=datetime.timedelta(seconds=20)) #init_method='file:///data/eval/ncclstore')
         # learn here https://leimao.github.io/blog/PyTorch-Distributed-Evaluation/
         device = torch.device("cuda:{}".format(dist.get_rank()))
@@ -152,10 +152,12 @@ def run(cfg):
     model.load_state_dict(torch.load(cfg["ckpt"], map_location=device)) #["desc"])
     model.eval()
     if multi_gpu:
-        model = torch.nn.parallel.DistributedDataParallel(
-            model, device_ids=[dist.get_rank()], output_device=dist.get_rank()
-        )
-
+        if cfg["use_ddp"]:
+            model = torch.nn.parallel.DistributedDataParallel(
+                model, device_ids=[dist.get_rank()], output_device=dist.get_rank()
+            )
+        else:
+            model = torch.nn.DataParallel(model).to(device)
     # --------------------------------------------
     # Inference
     # --------------------------------------------
@@ -208,7 +210,8 @@ def main():
     parser.add_argument("--swbs", type=int, default=8, dest="sw_batch_size", help="sliding window batch size")
     parser.add_argument("--no-amp", action="store_false", dest="use_amp", help="deactivate use of amp")
     parser.add_argument("--no-gpu", action="store_false", dest="use_gpu", help="deactivate use of gpu")
-    parser.add_argument("--ncpu", type=int, default=0, help="number of CPU workers")
+    parser.add_argument("--ddp", action="store_true", dest="use_ddp", help="use torch ddp")
+    parser.add_argument("--ncpu", type=int, default=12, help="number of CPU workers")
     args = parser.parse_args()
 
     config_dict = vars(args)
