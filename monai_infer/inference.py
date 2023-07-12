@@ -64,7 +64,7 @@ def run(cfg):
         if dist.get_rank() == 0:
             print(f"Running multi-gpu with {dist.get_world_size()} GPUs")
     else:
-        # os.environ['CUDA_VISIBLE_DEVICES']='0,3,4,7'
+        os.environ['CUDA_VISIBLE_DEVICES']='0,3,4,7'
         device = torch.device("cuda" if cfg["use_gpu"] and torch.cuda.is_available() else "cpu")
     # --------------------------------------------------------------------------
     # Transforms
