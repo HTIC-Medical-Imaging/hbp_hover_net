@@ -64,6 +64,7 @@ def run(cfg):
         if dist.get_rank() == 0:
             print(f"Running multi-gpu with {dist.get_world_size()} GPUs")
     else:
+        # os.environ['CUDA_VISIBLE_DEVICES']='0,3,4,7'
         device = torch.device("cuda" if cfg["use_gpu"] and torch.cuda.is_available() else "cpu")
     # --------------------------------------------------------------------------
     # Transforms
@@ -157,7 +158,8 @@ def run(cfg):
                 model, device_ids=[dist.get_rank()], output_device=dist.get_rank()
             )
         else:
-            model = torch.nn.DataParallel(model).to(device)
+            
+            model = torch.nn.DataParallel(model,device_ids=[0,3,4,7])
     # --------------------------------------------
     # Inference
     # --------------------------------------------
