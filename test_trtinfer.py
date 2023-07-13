@@ -52,7 +52,7 @@ if __name__=="__main__":
         inputs, outputs, bindings, stream, allocbatchsiz = common.allocate_buffers(engine,batch_size,0,outputspec)
         
         # https://github.com/NVIDIA/TensorRT/blob/a167852705d74bcc619d8fad0af4b9e4d84472fc/demo/BERT/inference.py#L154
-        context.set_binding_shape(0,(batch_size,3,256,256))
+        context.set_input_shape('input',(allocbatchsiz,3,256,256))
         
         assert context.all_binding_shapes_specified
 
@@ -79,13 +79,14 @@ if __name__=="__main__":
             # Before doing post-processing, we need to reshape the outputs as the common.do_inference will give us flat arrays.
             trt_outputs = [output.reshape([allocbatchsiz]+list(shape)) for output, shape in zip(trt_outputs, output_shapes)]
 
+            # print([x.shape for x in trt_outputs])
+
+            # post the outputs back in wsi size canvas
             for ii,rgn in enumerate(rgns):
                 c1,r1=rgn.point1.x,rgn.point1.y
                 c2,r2=rgn.point2.x,rgn.point2.y
                 nucleus_map[:,r1:r2,c1:c2]=trt_outputs[0][ii][:,:r2-r1,:c2-c1]
 
-            # print([x.shape for x in trt_outputs])
-            # post the outputs back in wsi size canvas
-            break
+            
 
     common.free_buffers(inputs, outputs, stream)
