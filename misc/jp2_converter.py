@@ -122,6 +122,9 @@ class Accessor:
         c1 = ext.point1.x
         c2 = ext.point2.x
 
+        c_cover = self.tileshape[1]-(c2-c1)
+        r_cover = self.tileshape[0]-(r2-r1)
+
         mirror_top = 0
         if r1 - padding < 0:
             mirror_top = -(r1 - padding)
@@ -135,14 +138,14 @@ class Accessor:
             c1 = c1-padding
 
         mirror_bot = 0
-        if r2 + padding >= nr:
-            mirror_bot = (r2 + padding) - nr
+        if r2 + padding + r_cover >= nr:
+            mirror_bot = (r2 + padding + r_cover) - nr
         else:
             r2 = r2+padding
 
         mirror_right = 0
-        if c2 + padding >= nc:
-            mirror_right = (c2 + padding) - nc
+        if c2 + padding + c_cover >= nc:
+            mirror_right = (c2 + padding + c_cover) - nc
         else:
             c2 = c2+padding
             
