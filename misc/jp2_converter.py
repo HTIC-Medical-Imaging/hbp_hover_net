@@ -89,8 +89,7 @@ class Accessor:
 
             infoname = self.imgpath.replace('.dat','_info.pkl').replace('img','hdr')
             info = pickle.load(open(infoname,'rb'))
-            shp = info['shape']
-            self._handle = np.memmap(self.imgpath,dtype='uint8',mode='r',shape=shp)
+            self._handle = np.memmap(self.imgpath,dtype='uint8',mode='r',shape=info['shape'])
             
         self.imageshape = self._handle.shape
         print(self.imageshape)

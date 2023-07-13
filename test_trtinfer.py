@@ -28,7 +28,7 @@ if __name__=="__main__":
     tileshp = (164,164)
     padding = (256-164)//2
     accessor = Accessor(imgdatfile,tileshp,padding)
-
+    print('ntiles:',accessor.ntiles)
     batches = []
     for batchstart in range(0,accessor.ntiles,batch_size):
         batchend = min(batchstart+batch_size,accessor.ntiles)
@@ -50,7 +50,7 @@ if __name__=="__main__":
         
         inputs, outputs, bindings, stream, allocbatchsiz = common.allocate_buffers(engine,batch_size,0,outputspec)
         
-        images = np.zeros((batch_size,3,256,256))
+        images = np.zeros((batch_size,3,256,256),dtype=np.float32)
         
         for batchslice in tqdm(batches):
             nimgs = batchslice[1]-batchslice[0]
@@ -58,7 +58,7 @@ if __name__=="__main__":
             rgns = []
             for ii,tilenum in enumerate(range(*batchslice)):
                 img,_,_ = accessor[tilenum]
-                images[ii,...]=np.transpose(img,[2,0,1])
+                images[ii,...]=np.transpose(img,[2,0,1]).astype(np.float32)/255
                 rgns.append(accessor.get_tile_extent(tilenum))
     
             # Do inference
