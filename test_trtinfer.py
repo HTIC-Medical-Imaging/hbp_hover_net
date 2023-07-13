@@ -76,7 +76,7 @@ if __name__=="__main__":
             for ii,rgn in enumerate(rgns):
                 c1,r1=rgn.point1.x,rgn.point1.y
                 c2,r2=rgn.point2.x,rgn.point2.y
-                nucleus_map[:,r1:r2,c1:c2]=trt_outputs[0][ii]
+                nucleus_map[:,r1:r2,c1:c2]=trt_outputs[0][ii][:,:r2-r1,:c2-c1]
 
             # print([x.shape for x in trt_outputs])
             # post the outputs back in wsi size canvas
