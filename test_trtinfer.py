@@ -55,8 +55,8 @@ if __name__=="__main__":
         # https://github.com/NVIDIA/TensorRT/blob/a167852705d74bcc619d8fad0af4b9e4d84472fc/demo/BERT/inference.py#L154
         context.set_input_shape('input',(allocbatchsiz,3,256,256))
         for jj,nm in enumerate(output_names):
-            context.set_binding_shape(engine.get_binding_index(nm),[allocbatchsiz]+output_shapes[jj])
-            
+            context.set_binding_shape(engine.get_binding_index(nm),[allocbatchsiz]+list(output_shapes[jj]))
+
         assert context.all_binding_shapes_specified
 
         images = np.zeros((batch_size,3,256,256),dtype=np.float32)
