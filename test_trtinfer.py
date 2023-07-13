@@ -47,9 +47,15 @@ if __name__=="__main__":
     nucleus_map = np.memmap('/data/eval2/nucleus_'+bn, dtype=np.float32, shape=(2,accessor.imageshape[0],accessor.imageshape[1]),mode='w+' )
 
     with get_engine(engine_path) as engine, engine.create_execution_context() as context:
-        
+        print('num_bindings:',engine.num_bindings)
+        print('num_optimization_profiles:',engine.num_optimization_profiles)
         inputs, outputs, bindings, stream, allocbatchsiz = common.allocate_buffers(engine,batch_size,0,outputspec)
         
+        # https://github.com/NVIDIA/TensorRT/blob/a167852705d74bcc619d8fad0af4b9e4d84472fc/demo/BERT/inference.py#L154
+        context.set_binding_shape(0,(batch_size,3,256,256))
+        
+        assert context.all_binding_shapes_specified
+
         images = np.zeros((batch_size,3,256,256),dtype=np.float32)
         
         for batchslice in tqdm(batches):
@@ -80,5 +86,6 @@ if __name__=="__main__":
 
             # print([x.shape for x in trt_outputs])
             # post the outputs back in wsi size canvas
+            break
 
     common.free_buffers(inputs, outputs, stream)
