@@ -19,7 +19,7 @@ if __name__=="__main__":
     batch_size = 64
     
     # FIXME: get a batch of tiles using Accessor
-    images = np.random.randn((batch_size,3,256,256)).astype(np.float32) 
+    images = np.random.randn(batch_size,3,256,256).astype(np.float32) 
 
     output_names = ['nucleus_prediction', 'horizontal_vertical', 'type_prediction']
     output_shapes = [(2,164,164),(2,164,164),(5,164,164)]
