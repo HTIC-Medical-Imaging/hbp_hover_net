@@ -181,7 +181,7 @@ class HostDeviceMem:
 
 # Allocates all buffers required for an engine, i.e. host/device inputs/outputs.
 # If engine uses dynamic shapes, specify a profile to find the maximum input & output size.
-def allocate_buffers(engine: trt.ICudaEngine, batchsize:int, profile_idx: Optional[int] = None, outspec:Optional[dict] = None):
+def allocate_buffers(engine: trt.ICudaEngine, batchsize:int, profile_idx: Optional[int] = None, outspec:Optional[dict] = {}):
     inputs = []
     outputs = []
     bindings = []
@@ -191,21 +191,22 @@ def allocate_buffers(engine: trt.ICudaEngine, batchsize:int, profile_idx: Option
     for binding in tensor_names:
         # get_tensor_profile_shape returns (min_shape, optimal_shape, max_shape)
         # Pick out the max shape to allocate enough memory for the binding.
-        shapes = engine.get_tensor_shape(binding) if profile_idx is None else engine.get_tensor_profile_shape(binding, profile_idx)
-        # [-1] # (min,opt,max) - take max
-        if len(shapes)>0:
-            minshape, optshape, maxshape = shapes
-        else:
-            maxshape = shapes
-        shplist = [x for x in maxshape]
-        shape_valid = np.all([s > 0 for s in shplist]) and len(shplist)>0
-        print(shplist,shape_valid)
-        if not shape_valid: 
-            if profile_idx is None:
-                raise ValueError(f"Binding {binding} has dynamic shape, " +\
-                    "but no profile was specified.")
+        shape_valid = False
+        if binding not in outspec:
+            shapes = engine.get_tensor_shape(binding) if profile_idx is None else engine.get_tensor_profile_shape(binding, profile_idx)
+            
+            if len(shapes)>0:
+                minshape, optshape, maxshape = shapes
             else:
+                maxshape = shapes
+            shplist = [x for x in maxshape]
+            shape_valid = np.all([s > 0 for s in shplist]) and len(shplist)>0
+        
+        if not shape_valid: 
+            if binding in outspec:
                 shape = [allocbatchsiz]+list(outspec[binding])
+            else:
+                raise RuntimeError(f"allocate_buffers: binding undefined {binding}")
         else:
             assert batchsize >= minshape[0] and batchsize <= maxshape[0], f"batch size mismatch for binding {binding}"
             if batchsize <= optshape[0]:

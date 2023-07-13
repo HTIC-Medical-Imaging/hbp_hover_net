@@ -92,11 +92,11 @@ class Accessor:
             self._handle = np.memmap(self.imgpath,dtype='uint8',mode='r',shape=info['shape'])
             
         self.imageshape = self._handle.shape
-        print(self.imageshape)
+        # print(self.imageshape)
         self.ntiles_c = round(self.imageshape[1]/shp[1]) # FIXME: was ceil, changing to round for compat with ui
         self.ntiles_r = round(self.imageshape[0]/shp[0]) # not actually used anywhere - only print
         self.ntiles = self.ntiles_r * self.ntiles_c
-        print(self.ntiles)
+        # print(self.ntiles)
         self.padding=padding
         self.tileshape = (shp[0],shp[1],3)
 
@@ -165,7 +165,7 @@ class Accessor:
             tic = datetime.now()
             arr = self._handle[to_slice(ext2,df)]
             elapsed = datetime.now()-tic
-            print(f'{os.getpid()}:{elapsed.microseconds//1000}',end=" ",flush=True)
+            # print(f'{os.getpid()}:{elapsed.microseconds//1000}',end=" ",flush=True)
             (mirror_top, mirror_left, mirror_bot, mirror_right) = mirrorvals
             if mirror_top > 0:
                 arr = np.pad(arr,[(mirror_top,0),(0,0),(0,0)],mode='reflect')
