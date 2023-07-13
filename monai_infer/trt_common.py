@@ -282,3 +282,42 @@ def do_inference_v2(context, bindings, inputs, outputs, stream):
     def execute_async():
         context.execute_async_v2(bindings=bindings, stream_handle=stream)
     return _do_inference_base(inputs, outputs, stream, execute_async)
+
+
+# https://github.com/NVIDIA/TensorRT/blob/a167852705d74bcc619d8fad0af4b9e4d84472fc/demo/Tacotron2/tensorrt/trt_utils.py#L70
+
+def engine_info(engine:trt.ICudaEngine):
+    binding_template = r"""
+        {btype} {{
+        name: "{bname}"
+        data_type: {dtype}
+        dims: {dims}
+        }}"""
+    
+    type_mapping = {"DataType.HALF": "TYPE_FP16",
+                    "DataType.FLOAT": "TYPE_FP32",
+                    "DataType.INT32": "TYPE_INT32",
+                    "DataType.BOOL" : "TYPE_BOOL"}
+
+    print("engine name", engine.name)
+    print("has_implicit_batch_dimension", engine.has_implicit_batch_dimension)
+    start_dim = 0 if engine.has_implicit_batch_dimension else 1
+    print("num_optimization_profiles", engine.num_optimization_profiles)
+    print("max_batch_size:", engine.max_batch_size)
+    print("device_memory_size:", engine.device_memory_size)
+    print("max_workspace_size:", engine.max_workspace_size)
+    print("num_layers:", engine.num_layers)
+
+    for i in range(engine.num_bindings):
+        btype = "input" if engine.binding_is_input(i) else "output"
+        bname = engine.get_binding_name(i)
+        dtype = engine.get_binding_dtype(i)
+        bdims = engine.get_binding_shape(i)
+        config_values = {
+            "btype": btype,
+            "bname": bname,
+            "dtype": type_mapping[str(dtype)],
+            "dims": list(bdims[start_dim:])
+        }
+        final_binding_str = binding_template.format_map(config_values)
+        print(final_binding_str)
