@@ -10,6 +10,14 @@ import numpy as np
 
 # https://docs.nvidia.com/deeplearning/tensorrt/quick-start-guide/index.html#export-from-pytorch
 # https://pytorch.org/tutorials/advanced/super_resolution_with_onnxruntime.html
+
+# creating trt engine file:
+# trtexec --onnx=model_fp32.onnx --buildOnly 
+# --minShapes=input:1x3x256x256
+# --maxShapes=input:128x3x256x256
+# --optShapes=input:32x3x256x256
+# --saveEngine=engine.trt
+
 def to_numpy(tensor):
     return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
