@@ -85,6 +85,13 @@ class Accessor:
             # load whole array in RAM
             self._handle = imread(self.imgpath)
 
+        elif self.imgpath[-3:]=='dat':
+
+            infoname = self.imgpath.replace('.dat','_info.pkl').replace('img','hdr')
+            info = pickle.load(open(infoname,'rb'))
+            shp = info['shape']
+            self._handle = np.memmap(self.imgpath,dtype='uint8',mode='r',shape=shp)
+            
         self.imageshape = self._handle.shape
         print(self.imageshape)
         self.ntiles_c = round(self.imageshape[1]/shp[1]) # FIXME: was ceil, changing to round for compat with ui
