@@ -181,20 +181,27 @@ class HostDeviceMem:
 
 # Allocates all buffers required for an engine, i.e. host/device inputs/outputs.
 # If engine uses dynamic shapes, specify a profile to find the maximum input & output size.
-def allocate_buffers(engine: trt.ICudaEngine, profile_idx: Optional[int] = None):
+def allocate_buffers(engine: trt.ICudaEngine, profile_idx: Optional[int] = None, outspec:Optional[dict] = None):
     inputs = []
     outputs = []
     bindings = []
     stream = cuda_call(cudart.cudaStreamCreate())
     tensor_names = [engine.get_tensor_name(i) for i in range(engine.num_io_tensors)]
+    maxbatchsiz = None
     for binding in tensor_names:
         # get_tensor_profile_shape returns (min_shape, optimal_shape, max_shape)
         # Pick out the max shape to allocate enough memory for the binding.
-        shape = engine.get_tensor_shape(binding) if profile_idx is None else engine.get_tensor_profile_shape(binding, profile_idx)[-1]
-        shape_valid = np.all([s >= 0 for s in shape])
-        if not shape_valid and profile_idx is None:
-            raise ValueError(f"Binding {binding} has dynamic shape, " +\
-                "but no profile was specified.")
+        shape = engine.get_tensor_shape(binding) if profile_idx is None else engine.get_tensor_profile_shape(binding, profile_idx)[-1] # (min,max,opt) - take max
+        shape_valid = np.all([s > 0 for s in shape])
+        if not shape_valid: 
+            if profile_idx is None:
+                raise ValueError(f"Binding {binding} has dynamic shape, " +\
+                    "but no profile was specified.")
+            else:
+                shape = [maxbatchsiz]+list(outspec[binding])
+        else:
+            maxbatchsiz = shape[0]
+
         size = trt.volume(shape)
         if engine.has_implicit_batch_dimension:
             size *= engine.max_batch_size

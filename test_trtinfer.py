@@ -18,10 +18,14 @@ if __name__=="__main__":
     batch_size = 32
     
     # FIXME: get a batch of tiles using Accessor
-    images = np.zeros((batch_size,3,256,256)) 
+    images = np.zeros((batch_size,3,256,256),dtype=np.float32) 
+
+    output_names = ['nucleus_prediction', 'horizontal_vertical', 'type_prediction']
+    output_shapes = [(2,164,164),(2,164,164),(5,164,164)]
+    outputspec = {nm:output_shapes[ii] for ii,nm in enumerate(output_names)}
 
     with get_engine(engine_path) as engine, engine.create_execution_context() as context:
-        inputs, outputs, bindings, stream = common.allocate_buffers(engine)
+        inputs, outputs, bindings, stream = common.allocate_buffers(engine,0,outputspec)
         # Do inference
         # print("Running inference on image {}...".format(input_image_path))
         # Set host input to the image. The common.do_inference function will copy the input to the GPU before executing.
@@ -29,9 +33,7 @@ if __name__=="__main__":
         trt_outputs = common.do_inference_v2(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
 
     
-    output_shapes=[(batch_size,2,164,164),(batch_size,2,164,164),(batch_size,5,164,164)]
-
     # Before doing post-processing, we need to reshape the outputs as the common.do_inference will give us flat arrays.
-    trt_outputs = [output.reshape(shape) for output, shape in zip(trt_outputs, output_shapes)]
+    trt_outputs = [output.reshape([batch_size]+list(shape)) for output, shape in zip(trt_outputs, output_shapes)]
 
     # FIXME: post the outputs back in wsi size canvas
