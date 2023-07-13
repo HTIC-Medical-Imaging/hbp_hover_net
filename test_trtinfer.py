@@ -49,6 +49,7 @@ if __name__=="__main__":
     with get_engine(engine_path) as engine, engine.create_execution_context() as context:
         print('num_bindings:',engine.num_bindings)
         print('num_optimization_profiles:',engine.num_optimization_profiles)
+        common.engine_info(engine)
         inputs, outputs, bindings, stream, allocbatchsiz = common.allocate_buffers(engine,batch_size,0,outputspec)
         
         # https://github.com/NVIDIA/TensorRT/blob/a167852705d74bcc619d8fad0af4b9e4d84472fc/demo/BERT/inference.py#L154
