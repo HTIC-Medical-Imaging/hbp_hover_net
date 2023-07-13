@@ -305,7 +305,8 @@ def engine_info(engine:trt.ICudaEngine):
     print("num_optimization_profiles", engine.num_optimization_profiles)
     print("max_batch_size:", engine.max_batch_size)
     print("device_memory_size:", engine.device_memory_size)
-    print("max_workspace_size:", engine.max_workspace_size)
+    if hasattr(engine,'max_workspace_size'):
+        print("max_workspace_size:", engine.max_workspace_size)
     print("num_layers:", engine.num_layers)
 
     for i in range(engine.num_bindings):
