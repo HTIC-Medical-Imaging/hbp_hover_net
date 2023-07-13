@@ -208,7 +208,7 @@ def allocate_buffers(engine: trt.ICudaEngine, batchsize:int, profile_idx: Option
                 shape = [allocbatchsiz]+list(outspec[binding])
         else:
             assert batchsize >= minshape[0] and batchsize <= maxshape[0], f"batch size mismatch for binding {binding}"
-            if batchsize < optshape[0]:
+            if batchsize <= optshape[0]:
                 shape = optshape
             else:
                 shape = maxshape

@@ -16,7 +16,7 @@ if __name__=="__main__":
     
     engine_path = '/code/hbp_hover_net/weights/monai_zoo/pathology_nuclei_segmentation_classification/models/engine.trt'
 
-    batch_size = 64
+    batch_size = 32
     
     # FIXME: get a batch of tiles using Accessor
     images = np.random.randn(batch_size,3,256,256).astype(np.float32) 
