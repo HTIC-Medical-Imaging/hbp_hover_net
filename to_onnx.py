@@ -14,7 +14,7 @@ import numpy as np
 # creating trt engine file:
 # trtexec --onnx=model_fp32.onnx --buildOnly --best --precisionConstraints=prefer
 # --minShapes=input:1x3x256x256
-# --maxShapes=input:128x3x256x256
+# --maxShapes=input:64x3x256x256
 # --optShapes=input:32x3x256x256
 # --saveEngine=engine.trt 
 
