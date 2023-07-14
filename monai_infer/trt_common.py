@@ -181,6 +181,9 @@ class HostDeviceMem:
 
 # Allocates all buffers required for an engine, i.e. host/device inputs/outputs.
 # If engine uses dynamic shapes, specify a profile to find the maximum input & output size.
+
+# FIXME: try https://nvidia.github.io/cuda-python/module/cudart.html#cuda.cudart.cudaGetDeviceProperties and chooseDevice
+
 def allocate_buffers(engine: trt.ICudaEngine, batchsize:int, profile_idx: Optional[int] = None, outspec:Optional[dict] = {}):
     inputs = []
     outputs = []
@@ -209,7 +212,9 @@ def allocate_buffers(engine: trt.ICudaEngine, batchsize:int, profile_idx: Option
                 raise RuntimeError(f"allocate_buffers: binding undefined {binding}")
         else:
             assert batchsize >= minshape[0] and batchsize <= maxshape[0], f"batch size mismatch for binding {binding}"
-            if batchsize <= optshape[0]:
+            if batchsize <= minshape[0]:
+                shape = minshape
+            elif batchsize <= optshape[0]:
                 shape = optshape
             else:
                 shape = maxshape

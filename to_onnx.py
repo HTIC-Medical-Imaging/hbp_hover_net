@@ -12,11 +12,11 @@ import numpy as np
 # https://pytorch.org/tutorials/advanced/super_resolution_with_onnxruntime.html
 
 # creating trt engine file:
-# trtexec --onnx=model_fp32.onnx --buildOnly 
+# trtexec --onnx=model_fp32.onnx --buildOnly --best --precisionConstraints=prefer
 # --minShapes=input:1x3x256x256
 # --maxShapes=input:128x3x256x256
 # --optShapes=input:32x3x256x256
-# --saveEngine=engine.trt
+# --saveEngine=engine.trt 
 
 def to_numpy(tensor):
     return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
@@ -78,7 +78,8 @@ if __name__=="__main__":
     #providers=['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider'])
     ort_session = onnxruntime.InferenceSession(outname, providers=['CPUExecutionProvider']) 
     
-    print('onnx inputs:',ort_session.get_inputs())
+    for inp in ort_session.get_inputs():
+        print(inp)
 
     ort_inputs = {ort_session.get_inputs()[0].name:to_numpy(dummy_batch)}
     ort_outs = ort_session.run(None,ort_inputs)

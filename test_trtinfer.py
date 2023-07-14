@@ -5,12 +5,12 @@ import datetime
 import sys
 import os
 from tqdm import tqdm
-
+from cuda import cuda, cudart
 from misc.jp2_converter import Accessor
 
 # https://github.com/NVIDIA/TensorRT/blob/main/samples/python/yolov3_onnx/onnx_to_tensorrt.py
 
-TRT_LOGGER = trt.Logger()
+TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE)
 
 def get_engine(engine_file_path):
     with open(engine_file_path, "rb") as f, trt.Runtime(TRT_LOGGER) as runtime:
@@ -19,7 +19,7 @@ def get_engine(engine_file_path):
 
 if __name__=="__main__": 
     
-    engine_path = '/code/hbp_hover_net/weights/monai_zoo/pathology_nuclei_segmentation_classification/models/engine.trt'
+    engine_path = '/code/hbp_hover_net/weights/monai_zoo/pathology_nuclei_segmentation_classification/models/engine_best.trt'
 
     imgdatfile = sys.argv[1]
     batch_size = int(sys.argv[2])
@@ -45,11 +45,14 @@ if __name__=="__main__":
     bn = os.path.basename(imgdatfile)
 
     nucleus_map = np.memmap('/data/eval2/nucleus_'+bn, dtype=np.float32, shape=(2,accessor.imageshape[0],accessor.imageshape[1]),mode='w+' )
+    nucleus_map[:]=0
 
+    cudart.cudaSetDevice(1)
     with get_engine(engine_path) as engine, engine.create_execution_context() as context:
         print('num_bindings:',engine.num_bindings)
         print('num_optimization_profiles:',engine.num_optimization_profiles)
         common.engine_info(engine)
+        
         inputs, outputs, bindings, stream, allocbatchsiz = common.allocate_buffers(engine,batch_size,0,outputspec)
         
         # https://github.com/NVIDIA/TensorRT/blob/a167852705d74bcc619d8fad0af4b9e4d84472fc/demo/BERT/inference.py#L154
@@ -86,10 +89,12 @@ if __name__=="__main__":
 
             # post the outputs back in wsi size canvas
             for ii,rgn in enumerate(rgns):
-                c1,r1=rgn.point1.x,rgn.point1.y
-                c2,r2=rgn.point2.x,rgn.point2.y
+                c1,r1=rgn.point1 # .x,rgn.point1.y
+                c2,r2=rgn.point2 # .x,rgn.point2.y
                 nucleus_map[:,r1:r2,c1:c2]=trt_outputs[0][ii][:,:r2-r1,:c2-c1]
 
-            
-
+            print(rgns)
+            break
+    
     common.free_buffers(inputs, outputs, stream)
+    del context
