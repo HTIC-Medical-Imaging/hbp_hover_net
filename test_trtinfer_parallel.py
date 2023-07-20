@@ -114,4 +114,4 @@ if __name__=="__main__":
     job = partial(parallel_infer,nucleus_map)
     with ThreadPoolExecutor(max_workers=len(num_gpus)) as executor:
         futures = executor.map(job,chunks,num_gpus)
-        wait(futures)
+        # wait(futures)

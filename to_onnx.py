@@ -74,7 +74,8 @@ if __name__=="__main__":
                       )
     
     onnx.checker.check_model(onnx.load(outname))
-
+    # https://onnxruntime.ai/docs/get-started/with-python.html
+    
     #providers=['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider'])
     ort_session = onnxruntime.InferenceSession(outname, providers=['CPUExecutionProvider']) 
     
