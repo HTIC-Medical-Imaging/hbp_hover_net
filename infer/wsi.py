@@ -376,7 +376,7 @@ class InferManager(base.InferManager):
             dataset,
             num_workers=self.nr_inference_workers,
             batch_size=self.batch_size,
-            drop_last=False,
+            drop_last=True,
             pin_memory = True
         )
 
