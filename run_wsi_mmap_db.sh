@@ -11,7 +11,8 @@ BATCH_SIZE=$8
 GPU_LIST=$9
 
 #INPUT_DIR=`dirname $INPUT_JP2`
-INPUT_DIR='/data/special/jp2cache'
+INPUT_DIR='${CACHE_PATH}/special/jp2cache'
+mkdir -p $INPUT_DIR
 BASENM=`basename $INPUT_JP2`
 
 python create_mmap.py $INPUT_JP2 $INPUT_DIR && python run_infer.py --gpu=$GPU_LIST --nr_types=6 --type_info_path=type_info.json --batch_size=$BATCH_SIZE --model_mode=fast --model_path=$MODEL_PATH  --nr_inference_workers=$N_INF_WORKERS --nr_post_proc_workers=$N_PP_WORKERS \

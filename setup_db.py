@@ -15,7 +15,7 @@ if __name__=="__main__":
 
     dbuser=os.getenv('POSTGRES_USERNAME','postgres')
     dbpass=os.getenv('POSTGRES_PASSWORD','admin123')
-    dbhost=os.getenv('POSTGRES_HOST','172.17.0.7')
+    dbhost=os.getenv('POSTGRES_HOST','172.17.0.4')
     dbport=os.getenv('POSTGRES_PORT','5432')
     
     conn=psycopg2.connect(dbname='postgres',user=dbuser,password=dbpass,host=dbhost,port=int(dbport))
@@ -26,9 +26,10 @@ if __name__=="__main__":
     
     with conn.cursor() as cursor:
         try:
-            cursor.execute('create database '+dbname)
-        except:
-            print('db not created')
+            cursor.execute(f'CREATE DATABASE "{dbname}"')
+        except psycopg2.Error as e:
+            print('Error: Unable to create the database.')
+            print(e)
 
     conn.close()
     
