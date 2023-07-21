@@ -3,7 +3,7 @@
 
 mkdir -p dist/misc 
 cp step*.sh dist
-cp src/setup_db.py src/insert_db_records.py dist
+cp setup_db.py insert_db_records.py dist
 cp src/run_infer.py dist 
 cp -r src/misc/*.py dist
 mkdir -p dist/infer
