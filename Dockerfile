@@ -10,6 +10,6 @@ COPY ./glymurrc /root/.config/glymur/
 
 COPY . /workspace
 
-RUN chmod +x /workspace/kdu_expand
+RUN chmod +x /workspace/bin/kdu_expand
 
-RUN sed -i 's/\r//' /workspace/run_wsi_mmap_db.sh
+RUN sed -i 's/\r//' /workspace/step*.sh

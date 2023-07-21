@@ -13,7 +13,6 @@ cp -r src/run_utils dist
 cp -r bin dist
 cp -r lib dist
 cp glymurrc dist
+cp requirements.txt dist
 
-
-# mkdir weights
 
