@@ -1,4 +1,4 @@
-#! bash
+#! /usr/bin/bash
 
 BIOSAMPLEID=$1
 SECNO=$2
@@ -10,7 +10,9 @@ N_PP_WORKERS=$7
 BATCH_SIZE=$8
 GPU_LIST=$9
 
-JP2CACHE_DIR='${CACHE_PATH}/special/jp2cache'
+mkdir -p $OUTPUT_DIR
+
+JP2CACHE_DIR=${CACHE_PATH}'/special/jp2cache'
 MODEL_PATH=/workspace/weights/hovernet_fast_pannuke_type_tf2pytorch.tar
 
 INPUT_JP2=`ls ${INPUTJP2_DIR}/B_${BIOSAMPLEID}_*_${SECNO}_lossless.jp2|head -1`

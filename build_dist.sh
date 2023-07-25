@@ -9,6 +9,8 @@ cp src/run_infer.py dist
 cp -r src/misc/*.py dist/misc
 mkdir -p dist/infer
 cp src/infer/*.py dist/infer
+mkdir -p dist/dataloader 
+cp src/dataloader/infer_loader.py dist/dataloader
 cp -r src/models dist
 cp -r src/run_utils dist
 cp -r bin dist
