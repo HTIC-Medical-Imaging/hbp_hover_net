@@ -17,6 +17,7 @@ if __name__=="__main__":
     assert secno in namepart, 'check secno argument (%s) expecting %s' % (secno, namepart)
 
     records = pd.read_csv(csvpath)
+    N = records.shape[0]
 
     dbuser=os.getenv('POSTGRES_USERNAME','postgres')
     dbpass=os.getenv('POSTGRES_PASSWORD','admin123')
@@ -27,13 +28,13 @@ if __name__=="__main__":
 
     with conn.cursor() as cursor:
 
-        for ii,rec in tqdm(records.iterrows()):
+        for ii,rec in tqdm(records.iterrows(),total=N):
             bbox_tl = rec.bbox_cmin,rec.bbox_rmin
             bbox_br = rec.bbox_cmax,rec.bbox_rmax
             cx = rec.cen_c+bbox_tl[0]
             cy = rec.cen_r+bbox_tl[1]
             cursor.execute(f'insert into nissl_detections_{dt} (section, centroid, tl, br, celltypeid, celltypeprob) values ({secno}, ST_MakePoint({cx},{cy})::point, ST_MakePoint({bbox_tl[0]},{bbox_tl[1]})::point, ST_MakePoint({bbox_br[0]},{bbox_br[1]})::point, {rec.type}, {rec.type_prob})')
-            if ii%10==0:
+            if ii%100==0:
                 conn.commit()
 
     conn.commit()
