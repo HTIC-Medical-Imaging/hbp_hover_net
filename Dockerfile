@@ -12,4 +12,6 @@ COPY . /workspace
 
 RUN chmod +x /workspace/bin/kdu_expand
 
+RUN chmod +x /workspace/*.sh
+
 RUN sed -i 's/\r//' /workspace/step*.sh
