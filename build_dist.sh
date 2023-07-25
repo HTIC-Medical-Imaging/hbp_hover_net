@@ -6,6 +6,7 @@ cp step*.sh dist
 cp entryPoint.sh dist
 cp setup_db.py insert_db_records.py create_mmap.py dist
 cp src/run_infer.py dist 
+cp src/type_info.json dist
 cp -r src/misc/*.py dist/misc
 mkdir -p dist/infer
 cp src/infer/*.py dist/infer

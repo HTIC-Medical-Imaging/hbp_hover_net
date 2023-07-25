@@ -2,11 +2,11 @@
 VER?=v1a
 
 dist:
-    ./build_dist.sh
+	./build_dist.sh
 
 docker: dist
-    ./build_dockerimage.sh $(VER) && ./test_build_dockercontainer.sh $(VER)
+	./build_dockerimage.sh $(VER) && ./test_build_dockercontainer.sh $(VER)
 
-test: docker
-    docker start test_$(VER) && docker exec -it test_$(VER) bash
+test: 
+	docker start test_$(VER) && docker exec -it test_$(VER) bash
 
