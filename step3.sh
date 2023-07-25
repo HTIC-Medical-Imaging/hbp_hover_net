@@ -1,4 +1,4 @@
-#! bash
+#! /usr/bin/bash
 
 BIOSAMPLEID=$1
 SECNO=$2
