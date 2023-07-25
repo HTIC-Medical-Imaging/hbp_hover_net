@@ -5,7 +5,7 @@
 cache/
 dataset/
 exp_output/
-
+dist
 # checkpoint paths
 *.npz
 *.png
