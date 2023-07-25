@@ -5,6 +5,7 @@ keepalive=${@: -1}
 
 eval $scriptname $@
 
-if [ -t $keepalive ]
+if [ $keepalive == 1 ]
+then
     tail -f /dev/null
 fi
