@@ -1,7 +1,7 @@
 #! /usr/bin/bash
 
 scriptname=$1
-keepalive=${@: -1}
+shift
 
 echo "entry point->" ${scriptname}
 
