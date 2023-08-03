@@ -13,4 +13,4 @@ JP2CACHE_DIR=${CACHE_PATH}'/special/jp2cache'
 
 INPUT_JP2=`ls ${INPUTJP2_DIR}/B_${BIOSAMPLEID}_*_${SECNO}_lossless.jp2|head -1`
 mkdir -p $JP2CACHE_DIR
-python create_mmap.py $INPUT_JP2 $JP2CACHE_DIR
+python3 create_mmap.py $INPUT_JP2 $JP2CACHE_DIR
